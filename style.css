@@ -1,0 +1,49 @@
+/* To jest CSS, czyli wygląd strony. Mówi przeglądarce, JAK pokazać elementy z HTML. */
+
+/* Zmienne – kolory zapisane w jednym miejscu, żeby łatwo je potem zmienić */
+:root {
+  --tlo: #faf7f5;
+  --tekst: #2b2b2b;
+  --akcent: #b5651d;
+  --szary: #8a8a8a;
+}
+
+/* Ustawienia całej strony */
+body {
+  margin: 0;
+  font-family: -apple-system, system-ui, sans-serif; /* systemowa czcionka – na iPhonie i Macu wygląda natywnie */
+  background: var(--tlo);
+  color: var(--tekst);
+}
+
+/* Pasek z tytułem na górze */
+.naglowek {
+  background: var(--akcent);
+  color: white;
+  padding: 16px;
+  text-align: center;
+}
+
+.naglowek h1 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+/* Główna część. Projektujemy najpierw pod telefon: wąsko, z marginesem 16px po bokach */
+.zawartosc {
+  padding: 16px;
+  max-width: 600px; /* na komputerze treść nie rozciąga się na cały ekran */
+  margin: 0 auto;   /* i jest wyśrodkowana */
+}
+
+.pusto {
+  color: var(--szary);
+  text-align: center;
+  margin-top: 48px;
+}
+
+#powitanie {
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--szary);
+}

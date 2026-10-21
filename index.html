@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<!-- To jest HTML, czyli szkielet strony. Mówi przeglądarce, CO jest na stronie. -->
+<html lang="pl">
+<head>
+  <!-- Kodowanie znaków: dzięki temu polskie litery (ą, ę, ż...) wyświetlają się poprawnie -->
+  <meta charset="UTF-8">
+  <!-- Bardzo ważne na telefonie: strona dopasowuje się do szerokości ekranu, zamiast być pomniejszonym "komputerowym" widokiem -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Tytuł widoczny na karcie przeglądarki -->
+  <title>Moja szafa</title>
+  <!-- Podłączamy plik z wyglądem (CSS) -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Nagłówek aplikacji -->
+  <header class="naglowek">
+    <h1>Moja szafa</h1>
+  </header>
+
+  <!-- Główna część strony. Na razie tylko komunikat; w kroku 2 pojawi się tu formularz i lista ubrań -->
+  <main class="zawartosc">
+    <p class="pusto">Twoja szafa jest jeszcze pusta.</p>
+    <!-- Ten akapit wypełni JavaScript – dzięki temu sprawdzimy, że skrypt działa -->
+    <p id="powitanie"></p>
+  </main>
+
+  <!-- Podłączamy plik z zachowaniem strony (JavaScript). Na końcu, żeby elementy powyżej już istniały -->
+  <script src="app.js"></script>
+</body>
+</html>
