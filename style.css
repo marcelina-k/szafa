@@ -6,6 +6,8 @@
   --tekst: #2b2b2b;
   --akcent: #2f9e44;
   --szary: #8a8a8a;
+  --karta: #ffffff;
+  --ramka: #e6e1dc;
 }
 
 /* Ustawienia całej strony */
@@ -36,14 +38,141 @@ body {
   margin: 0 auto;   /* i jest wyśrodkowana */
 }
 
+h2 {
+  font-size: 1.1rem;
+  margin: 0 0 12px;
+}
+
 .pusto {
   color: var(--szary);
   text-align: center;
-  margin-top: 48px;
+  margin-top: 32px;
 }
 
-#powitanie {
-  text-align: center;
-  font-size: 0.9rem;
+/* Element z atrybutem "hidden" ma być ukryty zawsze – nawet jeśli inna reguła CSS mówi "display: block" */
+[hidden] {
+  display: none !important;
+}
+
+.maly-tekst {
+  font-size: 0.8rem;
   color: var(--szary);
+  margin: 4px 0 0;
+}
+
+/* ---------- FORMULARZ ---------- */
+
+/* "Karta" – białe pole z zaokrąglonymi rogami */
+.karta {
+  background: var(--karta);
+  border: 1px solid var(--ramka);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+/* Każde pole formularza jeden pod drugim, z odstępem */
+.pole {
+  display: block;
+  margin-bottom: 14px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  border: none;
+  padding: 0;
+}
+
+.pole legend {
+  padding: 0;
+  margin-bottom: 6px;
+}
+
+/* Lista rozwijana i pole zdjęcia na całą szerokość */
+.pole select,
+.pole input[type="file"] {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  font-size: 1rem; /* 16px – mniejsza czcionka sprawia, że iPhone sam powiększa stronę przy dotknięciu pola */
+  padding: 8px;
+  border: 1px solid var(--ramka);
+  border-radius: 8px;
+  background: white;
+  box-sizing: border-box; /* szerokość liczona razem z marginesem wewnętrznym, żeby pole nie wychodziło poza kartę */
+}
+
+/* Pola wyboru (sezon, okazja) jako "pigułki" w rzędzie, które zawijają się do następnej linii */
+.opcje {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.opcje label {
+  font-weight: normal;
+  border: 1px solid var(--ramka);
+  border-radius: 999px;
+  padding: 6px 12px;
+  background: white;
+}
+
+/* Podgląd zdjęcia w formularzu */
+.podglad {
+  display: block;
+  max-width: 120px;
+  border-radius: 8px;
+  margin-top: 4px;
+}
+
+/* Duży przycisk – wygodny do kliknięcia palcem */
+.przycisk {
+  width: 100%;
+  padding: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+  background: var(--akcent);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* ---------- LISTA UBRAŃ ---------- */
+
+/* Siatka: 2 kolumny na telefonie */
+.siatka {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+/* Na szerszym ekranie (od 500px) – 3 kolumny */
+@media (min-width: 500px) {
+  .siatka {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.kafelek {
+  background: var(--karta);
+  border: 1px solid var(--ramka);
+  border-radius: 12px;
+  overflow: hidden; /* zdjęcie nie wychodzi poza zaokrąglone rogi */
+}
+
+/* Zdjęcie w kafelku: kwadrat, przycięty tak, żeby wypełnić miejsce */
+.kafelek img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  display: block;
+}
+
+.kafelek .opis {
+  padding: 8px;
+  font-size: 0.8rem;
+}
+
+.kafelek .opis strong {
+  display: block;
+  font-size: 0.9rem;
 }

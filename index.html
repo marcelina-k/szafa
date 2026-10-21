@@ -17,11 +17,87 @@
     <h1>Moja szafa</h1>
   </header>
 
-  <!-- Główna część strony. Na razie tylko komunikat; w kroku 2 pojawi się tu formularz i lista ubrań -->
   <main class="zawartosc">
-    <p class="pusto">Twoja szafa jest jeszcze pusta.</p>
-    <!-- Ten akapit wypełni JavaScript – dzięki temu sprawdzimy, że skrypt działa -->
-    <p id="powitanie"></p>
+
+    <!-- FORMULARZ DODAWANIA UBRANIA -->
+    <!-- <form> to pojemnik na pola do wypełnienia. id="formularz" to "imię", po którym JavaScript go znajdzie -->
+    <form id="formularz" class="karta">
+      <h2>Dodaj ubranie</h2>
+
+      <!-- Pole na zdjęcie. accept="image/*" = tylko obrazki. Na telefonie pozwoli zrobić zdjęcie aparatem albo wybrać z galerii -->
+      <label class="pole">
+        Zdjęcie
+        <input type="file" id="zdjecie" accept="image/*" required>
+      </label>
+      <!-- Tu pokażemy podgląd zmniejszonego zdjęcia -->
+      <img id="podglad" class="podglad" alt="" hidden>
+      <p id="info-zdjecie" class="maly-tekst"></p>
+
+      <!-- Lista rozwijana (select) – wybierasz JEDNĄ opcję -->
+      <label class="pole">
+        Kategoria
+        <select id="kategoria" required>
+          <option value="">— wybierz —</option>
+          <option>Góra</option>
+          <option>Dół</option>
+          <option>Sukienka</option>
+          <option>Okrycie wierzchnie</option>
+          <option>Buty</option>
+          <option>Dodatki</option>
+        </select>
+      </label>
+
+      <label class="pole">
+        Kolor
+        <select id="kolor" required>
+          <option value="">— wybierz —</option>
+          <option>Biały</option>
+          <option>Czarny</option>
+          <option>Szary</option>
+          <option>Beżowy</option>
+          <option>Brązowy</option>
+          <option>Granatowy</option>
+          <option>Niebieski</option>
+          <option>Zielony</option>
+          <option>Czerwony</option>
+          <option>Różowy</option>
+          <option>Żółty</option>
+          <option>Fioletowy</option>
+          <option>Wielokolorowy</option>
+        </select>
+      </label>
+
+      <!-- Pola wyboru (checkbox) – możesz zaznaczyć KILKA. Kurtka może być i na jesień, i na zimę -->
+      <fieldset class="pole">
+        <legend>Sezon</legend>
+        <div class="opcje" id="sezony">
+          <label><input type="checkbox" value="Wiosna"> Wiosna</label>
+          <label><input type="checkbox" value="Lato"> Lato</label>
+          <label><input type="checkbox" value="Jesień"> Jesień</label>
+          <label><input type="checkbox" value="Zima"> Zima</label>
+        </div>
+      </fieldset>
+
+      <fieldset class="pole">
+        <legend>Okazja</legend>
+        <div class="opcje" id="okazje">
+          <label><input type="checkbox" value="Codzienna"> Codzienna</label>
+          <label><input type="checkbox" value="Praca"> Praca</label>
+          <label><input type="checkbox" value="Sport"> Sport</label>
+          <label><input type="checkbox" value="Wyjście"> Wyjście</label>
+          <label><input type="checkbox" value="Elegancka"> Elegancka</label>
+        </div>
+      </fieldset>
+
+      <button type="submit" class="przycisk">Dodaj do szafy</button>
+    </form>
+
+    <!-- LISTA UBRAŃ -->
+    <h2>Moje ubrania</h2>
+    <p id="pusto" class="pusto">Twoja szafa jest jeszcze pusta.</p>
+    <!-- Ten pojemnik wypełni JavaScript kafelkami z ubraniami -->
+    <div id="lista" class="siatka"></div>
+
   </main>
 
   <!-- Podłączamy plik z zachowaniem strony (JavaScript). Na końcu, żeby elementy powyżej już istniały -->
