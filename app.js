@@ -18,7 +18,7 @@ const KATEGORIE = {
   'Dół spodnie': ['Materiałowe', 'Jeansy', 'Szorty', 'Legginsy', 'Legginsy dzwony', 'Bikery'],
   'Dół spódnica': ['Krótka', 'Midi', 'Długa'],
   'Sukienka / kombinezon': ['Krótka', 'Midi', 'Długa', 'Kombinezon'],
-  'Okrycie wierzchnie': ['Kurtka', 'Płaszcz', 'Marynarka', 'Kamizelka'],
+  'Okrycie wierzchnie': ['Kurtka', 'Płaszcz', 'Marynarka', 'Kamizelka', 'Trencz'],
   'Buty': ['Sneakersy', 'Botki', 'Kozaki', 'Szpilki', 'Sandały', 'Baleriny', 'Mokasyny', 'Japonki', 'Klapki'],
   'Dodatki': ['Torba', 'Torebka', 'Szalik', 'Chusta', 'Czapka', 'Czapka z daszkiem', 'Pasek', 'Rękawiczki', 'Biżuteria'],
 };
