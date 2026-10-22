@@ -40,6 +40,9 @@ const ubrania = [];
 // Tu trzymamy zmniejszone zdjęcie, zanim klikniesz "Dodaj do szafy"
 let zmniejszoneZdjecie = null;
 
+// Numer (id) ubrania, które teraz edytujesz. null = nic nie edytujesz, formularz dodaje nowe ubranie.
+let edytowaneId = null;
+
 // ---------- ELEMENTY STRONY ----------
 
 // Znajdujemy w HTML elementy po ich id, żeby móc z nimi pracować
@@ -148,17 +151,24 @@ function zaznaczone(idGrupy) {
   return Array.from(pola).map(function (pole) { return pole.value; });
 }
 
-// Gdy klikniesz "Dodaj do szafy" (zdarzenie "submit")
+// Gdy klikniesz "Dodaj do szafy" albo "Zapisz zmiany" (zdarzenie "submit")
 formularz.addEventListener('submit', async function (zdarzenie) {
   // Domyślnie formularz przeładowałby stronę – blokujemy to, bo sami obsłużymy dane
   zdarzenie.preventDefault();
 
-  if (!zmniejszoneZdjecie) return; // zdjęcie jeszcze się zmniejsza
+  // Wybrano zdjęcie, ale jeszcze się zmniejsza – poczekaj
+  if (poleZdjecia.files.length && !zmniejszoneZdjecie) return;
+
+  // Przy edycji szukamy starej wersji ubrania (find = "znajdź pierwszy pasujący element")
+  const stare = ubrania.find(function (u) { return u.id === edytowaneId; });
 
   // Tworzymy "obiekt" – paczkę informacji o jednym ubraniu
   const ubranie = {
-    id: Date.now(), // unikalny numer: liczba milisekund od 1970 roku
-    zdjecie: zmniejszoneZdjecie,
+    // Przy edycji zostawiamy stary numer – dzięki temu baza nadpisze stare ubranie, a nie doda nowego.
+    // Nowe ubranie dostaje unikalny numer: liczbę milisekund od 1970 roku.
+    id: stare ? stare.id : Date.now(),
+    // Nowe zdjęcie, a jeśli przy edycji go nie wybrano – stare
+    zdjecie: zmniejszoneZdjecie || stare.zdjecie,
     kategoria: poleKategorii.value,
     podkategoria: polePodkategorii.value,
     kolor: document.getElementById('kolor').value,
@@ -168,15 +178,93 @@ formularz.addEventListener('submit', async function (zdarzenie) {
   };
 
   await zapiszUbranie(ubranie); // zapisujemy na stałe w bazie (funkcja z baza.js)
-  ubrania.push(ubranie);        // i dodajemy na koniec listy w pamięci
-  pokazUbrania();
 
-  // Czyścimy formularz, żeby można było dodać kolejne ubranie
+  if (stare) {
+    // Podmieniamy stare ubranie na nowe w tym samym miejscu listy (indexOf = "na którym miejscu jest")
+    ubrania[ubrania.indexOf(stare)] = ubranie;
+    if (zmniejszoneZdjecie) zapomnijZdjecie(stare.id); // zdjęcie się zmieniło – stary adres do kosza
+  } else {
+    ubrania.push(ubranie); // nowe ubranie – na koniec listy
+  }
+
+  zakonczEdycje(); // czyści formularz i wraca do trybu "Dodaj ubranie"
+  pokazUbrania();
+});
+
+// ---------- EDYCJA I USUWANIE ----------
+
+const tytulFormularza = document.getElementById('tytul-formularza');
+const przyciskZapisz = document.getElementById('przycisk-zapisz');
+const przyciskiEdycji = document.getElementById('przyciski-edycji');
+
+// Zaznacza w grupie pigułek te, które są na liście, a resztę odznacza
+function zaznaczPigulki(idGrupy, wartosci) {
+  document.querySelectorAll('#' + idGrupy + ' input').forEach(function (pole) {
+    pole.checked = wartosci.includes(pole.value);
+  });
+}
+
+// Przełącza formularz w tryb edycji i wpisuje do niego dane ubrania
+function rozpocznijEdycje(ubranie) {
+  zakonczEdycje(); // na wypadek, gdyby edytowano już inne ubranie
+  edytowaneId = ubranie.id;
+
+  tytulFormularza.textContent = 'Edytuj ubranie';
+  przyciskZapisz.textContent = 'Zapisz zmiany';
+  przyciskiEdycji.hidden = false;
+
+  // Zdjęcie przy edycji nie jest wymagane – jeśli nie wybierzesz nowego, zostaje stare
+  poleZdjecia.required = false;
+  podglad.src = adresZdjecia(ubranie);
+  podglad.hidden = false;
+  infoZdjecie.textContent = 'Wybierz nowe zdjęcie tylko, jeśli chcesz je zmienić.';
+
+  // Wpisujemy dane ubrania do pól formularza
+  poleKategorii.value = ubranie.kategoria;
+  wypelnijRodzaje(polePodkategorii, poleKategorii.value, '— wybierz —');
+  polePodkategorii.value = ubranie.podkategoria;
+  document.getElementById('kolor').value = ubranie.kolor;
+  zaznaczPigulki('sezony', ubranie.sezony);
+  zaznaczPigulki('okazje', ubranie.okazje);
+  document.getElementById('notatka').value = ubranie.notatka;
+
+  pokazUbrania(); // żeby zaznaczyć edytowany kafelek zieloną ramką
+  formularz.scrollIntoView({ behavior: 'smooth' }); // przewijamy do formularza
+}
+
+// Wraca do zwykłego trybu "Dodaj ubranie" i czyści formularz
+function zakonczEdycje() {
+  edytowaneId = null;
   formularz.reset();
   wypelnijRodzaje(polePodkategorii, '', '— najpierw kategoria —');
+  tytulFormularza.textContent = 'Dodaj ubranie';
+  przyciskZapisz.textContent = 'Dodaj do szafy';
+  przyciskiEdycji.hidden = true;
+  poleZdjecia.required = true;
   podglad.hidden = true;
   infoZdjecie.textContent = '';
   zmniejszoneZdjecie = null;
+}
+
+document.getElementById('anuluj-edycje').addEventListener('click', function () {
+  zakonczEdycje();
+  pokazUbrania(); // zdejmujemy zieloną ramkę z kafelka
+});
+
+document.getElementById('usun-ubranie').addEventListener('click', async function () {
+  // confirm pokazuje okienko z pytaniem i przyciskami OK / Anuluj. Zwraca true, jeśli klikniesz OK.
+  if (!confirm('Na pewno usunąć to ubranie? Tego nie da się cofnąć.')) return;
+
+  const id = edytowaneId;
+  await usunUbranieZBazy(id); // funkcja z baza.js
+  // Zostawiamy na liście wszystkie ubrania OPRÓCZ usuniętego
+  const pozostale = ubrania.filter(function (u) { return u.id !== id; });
+  ubrania.length = 0;
+  ubrania.push(...pozostale);
+  zapomnijZdjecie(id);
+
+  zakonczEdycje();
+  pokazUbrania();
 });
 
 // ---------- WYŚWIETLANIE LISTY ----------
@@ -191,6 +279,14 @@ function adresZdjecia(ubranie) {
     adresyZdjec.set(ubranie.id, URL.createObjectURL(ubranie.zdjecie));
   }
   return adresyZdjec.get(ubranie.id);
+}
+
+// Zwalnia pamięć po adresie zdjęcia (gdy ubranie usunięto albo zmieniono mu zdjęcie)
+function zapomnijZdjecie(id) {
+  if (adresyZdjec.has(id)) {
+    URL.revokeObjectURL(adresyZdjec.get(id));
+    adresyZdjec.delete(id);
+  }
 }
 
 // Czy ubranie pasuje do wybranych filtrów? Zwraca true (tak) albo false (nie).
@@ -228,9 +324,10 @@ function pokazUbrania() {
   // Filtry i licznik pokazujemy dopiero, gdy w szafie coś jest
   filtry.hidden = ubrania.length === 0;
   licznik.hidden = ubrania.length === 0;
-  licznik.textContent = widoczne.length === ubrania.length
+  licznik.textContent = (widoczne.length === ubrania.length
     ? 'Wszystkie: ' + ileUbran(ubrania.length)
-    : 'Pokazuję ' + widoczne.length + ' z ' + ileUbran(ubrania.length);
+    : 'Pokazuję ' + widoczne.length + ' z ' + ileUbran(ubrania.length)) +
+    ' · stuknij ubranie, aby je edytować';
 
   // Komunikat, gdy nie ma czego pokazać – inny dla pustej szafy, inny dla "nic nie pasuje"
   pusto.hidden = widoczne.length > 0;
@@ -240,8 +337,12 @@ function pokazUbrania() {
 
   // Dla każdego widocznego ubrania tworzymy kafelek
   widoczne.forEach(function (ubranie) {
-    const kafelek = document.createElement('div');
+    // Kafelek to przycisk – stuknięcie otwiera edycję tego ubrania
+    const kafelek = document.createElement('button');
+    kafelek.type = 'button';
     kafelek.className = 'kafelek';
+    if (ubranie.id === edytowaneId) kafelek.classList.add('edytowany');
+    kafelek.addEventListener('click', function () { rozpocznijEdycje(ubranie); });
 
     const img = document.createElement('img');
     img.src = adresZdjecia(ubranie);
@@ -249,14 +350,14 @@ function pokazUbrania() {
     const nazwa = ubranie.podkategoria || ubranie.kategoria;
     img.alt = nazwa + ', ' + ubranie.kolor;
 
-    const opis = document.createElement('div');
+    const opis = document.createElement('span'); // w przycisku można umieszczać tylko "drobne" elementy, np. span
     opis.className = 'opis';
 
     // Każdą linijkę opisu tworzymy osobno i wpisujemy przez textContent (a nie innerHTML).
     // To ważne przy notatce, którą piszesz sama: textContent zawsze traktuje ją jako zwykły tekst,
     // więc nawet wpisane znaki < > nie zostaną potraktowane jak kod HTML.
     function linijka(tekst, klasa) {
-      const element = document.createElement(klasa === 'nazwa' ? 'strong' : 'div');
+      const element = document.createElement(klasa === 'nazwa' ? 'strong' : 'span');
       if (klasa === 'notatka') element.className = 'notatka';
       element.textContent = tekst;
       opis.append(element);

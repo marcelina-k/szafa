@@ -8,8 +8,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- Tytuł widoczny na karcie przeglądarki -->
   <title>Moja szafa</title>
-  <!-- Podłączamy plik z wyglądem (CSS) -->
-  <link rel="stylesheet" href="style.css">
+  <!-- Podłączamy plik z wyglądem (CSS).
+       "?v=6" to numer wersji. Przeglądarka zapamiętuje pliki; gdy zmienimy numer, uzna plik za nowy
+       i pobierze go na pewno. Podnosimy go (tu i przy skryptach na dole) przy każdym kroku. -->
+  <link rel="stylesheet" href="style.css?v=6">
 
   <!-- PWA: dzięki tym linijkom stronę można zainstalować na telefonie jak aplikację -->
   <!-- Manifest = "wizytówka" aplikacji: nazwa, ikona, kolory -->
@@ -31,10 +33,11 @@
 
   <main class="zawartosc">
 
-    <!-- FORMULARZ DODAWANIA UBRANIA -->
-    <!-- <form> to pojemnik na pola do wypełnienia. id="formularz" to "imię", po którym JavaScript go znajdzie -->
+    <!-- FORMULARZ DODAWANIA (I EDYCJI) UBRANIA -->
+    <!-- <form> to pojemnik na pola do wypełnienia. id="formularz" to "imię", po którym JavaScript go znajdzie.
+         Ten sam formularz służy do edycji: JavaScript zmienia wtedy tytuł, przycisk i wpisuje dane ubrania -->
     <form id="formularz" class="karta">
-      <h2>Dodaj ubranie</h2>
+      <h2 id="tytul-formularza">Dodaj ubranie</h2>
 
       <!-- Pole na zdjęcie. accept="image/*" = tylko obrazki. Na telefonie pozwoli zrobić zdjęcie aparatem albo wybrać z galerii -->
       <label class="pole">
@@ -108,7 +111,13 @@
         <input type="text" id="notatka" maxlength="100" placeholder="np. w paski, w kratkę, z kokardą">
       </label>
 
-      <button type="submit" class="przycisk">Dodaj do szafy</button>
+      <button type="submit" id="przycisk-zapisz" class="przycisk">Dodaj do szafy</button>
+
+      <!-- Przyciski widoczne tylko podczas edycji -->
+      <div id="przyciski-edycji" class="przyciski" hidden>
+        <button type="button" id="anuluj-edycje" class="przycisk przycisk-jasny">Anuluj</button>
+        <button type="button" id="usun-ubranie" class="przycisk przycisk-usun">Usuń ubranie</button>
+      </div>
     </form>
 
     <!-- LISTA UBRAŃ -->
@@ -167,7 +176,7 @@
 
   <!-- Podłączamy pliki z zachowaniem strony (JavaScript). Na końcu, żeby elementy powyżej już istniały.
        Najpierw baza.js (zapis danych), potem app.js, który z niej korzysta -->
-  <script src="baza.js"></script>
-  <script src="app.js"></script>
+  <script src="baza.js?v=6"></script>
+  <script src="app.js?v=6"></script>
 </body>
 </html>

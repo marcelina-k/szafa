@@ -45,9 +45,13 @@ self.addEventListener('activate', function (zdarzenie) {
 // odkładamy jej kopię do schowka, a gdy internetu nie ma – podajemy kopię ze schowka.
 self.addEventListener('fetch', function (zdarzenie) {
   if (zdarzenie.request.method !== 'GET') return;
+  // Zajmujemy się tylko plikami naszej aplikacji (nie cudzymi stronami)
+  if (new URL(zdarzenie.request.url).origin !== self.location.origin) return;
 
   zdarzenie.respondWith(
-    fetch(zdarzenie.request)
+    // cache: 'no-cache' = "zawsze zapytaj serwer, czy jest nowsza wersja".
+    // Bez tego telefon przez ok. 10 minut używałby starej kopii i Twoje zmiany docierałyby z opóźnieniem.
+    fetch(zdarzenie.request.url, { cache: 'no-cache' })
       .then(function (odpowiedz) {
         const kopia = odpowiedz.clone();
         caches.open(SCHOWEK).then(function (schowek) { schowek.put(zdarzenie.request, kopia); });

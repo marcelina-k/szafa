@@ -153,6 +153,13 @@ h2 {
   box-sizing: border-box;
 }
 
+/* Czerwony przycisk – do akcji, których nie da się cofnąć */
+.przycisk-usun {
+  background: white;
+  color: #c92a2a;
+  border: 1px solid #c92a2a;
+}
+
 /* ---------- FILTRY ---------- */
 
 .filtry {
@@ -199,11 +206,27 @@ h2 {
   }
 }
 
+/* Kafelek jest przyciskiem (żeby dało się go stuknąć), więc zdejmujemy wygląd zwykłego przycisku */
 .kafelek {
   background: var(--karta);
   border: 1px solid var(--ramka);
   border-radius: 12px;
   overflow: hidden; /* zdjęcie nie wychodzi poza zaokrąglone rogi */
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* Kafelek edytowanego teraz ubrania – z zieloną ramką */
+.kafelek.edytowany {
+  border: 2px solid var(--akcent);
+}
+
+/* Linijki opisu jedna pod drugą */
+.kafelek .opis span {
+  display: block;
 }
 
 /* Zdjęcie w kafelku: kwadrat, przycięty tak, żeby wypełnić miejsce */
@@ -215,6 +238,7 @@ h2 {
 }
 
 .kafelek .opis {
+  display: block;
   padding: 8px;
   font-size: 0.8rem;
 }

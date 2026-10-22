@@ -44,6 +44,13 @@ function zapiszUbranie(ubranie) {
   });
 }
 
+// Usuwa ubranie o podanym id
+function usunUbranieZBazy(id) {
+  return bazaGotowa.then(function (baza) {
+    return naObietnice(baza.transaction('ubrania', 'readwrite').objectStore('ubrania').delete(id));
+  });
+}
+
 // Prosimy przeglądarkę, żeby nie kasowała naszych danych, gdy zabraknie miejsca na dysku.
 // Przeglądarka może się nie zgodzić – wtedy tym bardziej warto robić kopie (eksport).
 if (navigator.storage && navigator.storage.persist) {
