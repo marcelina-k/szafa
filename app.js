@@ -232,3 +232,11 @@ poleImportu.addEventListener('change', async function () {
 
 // Po otwarciu strony od razu wczytujemy zapisane ubrania
 wczytajIPokaz();
+
+// Uruchamiamy pomocnika (service worker z pliku sw.js), dzięki któremu aplikacja działa bez internetu.
+// "if" sprawdza, czy przeglądarka w ogóle to obsługuje.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(function () {
+    // Nie udało się (np. przeglądarka to blokuje) – trudno, aplikacja działa dalej, tylko bez trybu offline
+  });
+}

@@ -10,6 +10,18 @@
   <title>Moja szafa</title>
   <!-- Podłączamy plik z wyglądem (CSS) -->
   <link rel="stylesheet" href="style.css">
+
+  <!-- PWA: dzięki tym linijkom stronę można zainstalować na telefonie jak aplikację -->
+  <!-- Manifest = "wizytówka" aplikacji: nazwa, ikona, kolory -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <!-- Ikona na karcie przeglądarki -->
+  <link rel="icon" type="image/png" href="ikony/ikona-192.png">
+  <!-- Ikona na ekranie głównym iPhone'a (iPhone szuka właśnie tej linijki) -->
+  <link rel="apple-touch-icon" href="ikony/ikona-180.png">
+  <!-- Podpis pod ikoną na iPhonie -->
+  <meta name="apple-mobile-web-app-title" content="Szafa">
+  <!-- Kolor paska systemowego na górze ekranu – ten sam zielony co nagłówek -->
+  <meta name="theme-color" content="#2f9e44">
 </head>
 <body>
   <!-- Nagłówek aplikacji -->
