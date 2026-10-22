@@ -11,7 +11,7 @@
   <!-- Podłączamy plik z wyglądem (CSS).
        "?v=6" to numer wersji. Przeglądarka zapamiętuje pliki; gdy zmienimy numer, uzna plik za nowy
        i pobierze go na pewno. Podnosimy go (tu i przy skryptach na dole) przy każdym kroku. -->
-  <link rel="stylesheet" href="style.css?v=6">
+  <link rel="stylesheet" href="style.css?v=7">
 
   <!-- PWA: dzięki tym linijkom stronę można zainstalować na telefonie jak aplikację -->
   <!-- Manifest = "wizytówka" aplikacji: nazwa, ikona, kolory -->
@@ -29,9 +29,17 @@
   <!-- Nagłówek aplikacji -->
   <header class="naglowek">
     <h1>Moja szafa</h1>
+    <!-- Zakładki. data-widok mówi, który fragment strony pokazać po stuknięciu -->
+    <nav class="zakladki">
+      <button type="button" class="zakladka aktywna" data-widok="widok-ubrania">Ubrania</button>
+      <button type="button" class="zakladka" data-widok="widok-zestawy">Zestawy</button>
+    </nav>
   </header>
 
   <main class="zawartosc">
+
+    <!-- ========== WIDOK: UBRANIA ========== -->
+    <div id="widok-ubrania">
 
     <!-- FORMULARZ DODAWANIA (I EDYCJI) UBRANIA -->
     <!-- <form> to pojemnik na pola do wypełnienia. id="formularz" to "imię", po którym JavaScript go znajdzie.
@@ -172,11 +180,60 @@
       <p id="info-kopia" class="maly-tekst"></p>
     </section>
 
+    </div>
+
+    <!-- ========== WIDOK: ZESTAWY ========== -->
+    <!-- hidden = na starcie ukryty; JavaScript pokaże go po stuknięciu zakładki "Zestawy" -->
+    <div id="widok-zestawy" hidden>
+
+      <button type="button" id="nowy-zestaw" class="przycisk">+ Nowy zestaw</button>
+
+      <!-- Formularz zestawu – widoczny tylko podczas tworzenia albo edycji zestawu -->
+      <form id="formularz-zestawu" class="karta" hidden>
+        <h2 id="tytul-zestawu">Nowy zestaw</h2>
+
+        <label class="pole">
+          Nazwa
+          <input type="text" id="nazwa-zestawu" maxlength="50" required placeholder="np. Biuro – piątek">
+        </label>
+
+        <!-- Pigułki sezonu i okazji skopiuje JavaScript z formularza ubrań -->
+        <fieldset class="pole">
+          <legend>Sezon</legend>
+          <div class="opcje" id="zestaw-sezony"></div>
+        </fieldset>
+        <fieldset class="pole">
+          <legend>Okazja</legend>
+          <div class="opcje" id="zestaw-okazje"></div>
+        </fieldset>
+
+        <!-- Wybór ubrań: stuknięcie zaznacza albo odznacza ubranie -->
+        <div class="pole">
+          Ubrania w zestawie <span id="ile-wybranych" class="maly-tekst"></span>
+          <select id="wybor-kategoria"></select>
+          <div id="wybor-ubran" class="siatka-mala"></div>
+        </div>
+        <p id="blad-zestawu" class="blad" hidden>Zaznacz przynajmniej jedno ubranie.</p>
+
+        <button type="submit" id="zapisz-zestaw" class="przycisk">Zapisz zestaw</button>
+        <div class="przyciski">
+          <button type="button" id="anuluj-zestaw" class="przycisk przycisk-jasny">Anuluj</button>
+          <button type="button" id="usun-zestaw" class="przycisk przycisk-usun">Usuń zestaw</button>
+        </div>
+      </form>
+
+      <h2 class="naglowek-listy">Moje zestawy</h2>
+      <p id="pusto-zestawy" class="pusto"></p>
+      <!-- Ten pojemnik wypełni JavaScript kartami zestawów -->
+      <div id="lista-zestawow" class="lista-zestawow"></div>
+    </div>
+
   </main>
 
   <!-- Podłączamy pliki z zachowaniem strony (JavaScript). Na końcu, żeby elementy powyżej już istniały.
-       Najpierw baza.js (zapis danych), potem app.js, który z niej korzysta -->
-  <script src="baza.js?v=6"></script>
-  <script src="app.js?v=6"></script>
+       Najpierw baza.js (zapis danych), potem app.js (ubrania), potem zestawy.js, który korzysta z obu -->
+  <script src="baza.js?v=7"></script>
+  <script src="app.js?v=7"></script>
+  <script src="zestawy.js?v=7"></script>
 </body>
 </html>

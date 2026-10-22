@@ -96,14 +96,18 @@ function rozmiarTekstem(bajty) {
   return Math.round(bajty / 1024) + ' KB';
 }
 
-// Odmienia słowo "ubranie" po polsku: 1 ubranie, 2 ubrania, 5 ubrań, 22 ubrania, 12 ubrań
-function ileUbran(liczba) {
-  if (liczba === 1) return '1 ubranie';
+// Odmienia słowo po polsku według liczby, np. odmien(5, 'ubranie', 'ubrania', 'ubrań') -> "5 ubrań".
+// Formy: jeden (1 ubranie), kilka (2–4, 22–24... ubrania), wiele (5–21, 25... ubrań)
+function odmien(liczba, jeden, kilka, wiele) {
+  if (liczba === 1) return '1 ' + jeden;
   const jednosci = liczba % 10;   // ostatnia cyfra (% to reszta z dzielenia)
   const dziesiatki = liczba % 100; // dwie ostatnie cyfry
-  if (jednosci >= 2 && jednosci <= 4 && (dziesiatki < 12 || dziesiatki > 14)) return liczba + ' ubrania';
-  return liczba + ' ubrań';
+  if (jednosci >= 2 && jednosci <= 4 && (dziesiatki < 12 || dziesiatki > 14)) return liczba + ' ' + kilka;
+  return liczba + ' ' + wiele;
 }
+
+function ileUbran(liczba) { return odmien(liczba, 'ubranie', 'ubrania', 'ubrań'); }
+function ileZestawow(liczba) { return odmien(liczba, 'zestaw', 'zestawy', 'zestawów'); }
 
 // Gdy wybierzesz zdjęcie (zdarzenie "change") – od razu je zmniejszamy i pokazujemy podgląd
 poleZdjecia.addEventListener('change', async function () {
@@ -189,6 +193,7 @@ formularz.addEventListener('submit', async function (zdarzenie) {
 
   zakonczEdycje(); // czyści formularz i wraca do trybu "Dodaj ubranie"
   pokazUbrania();
+  pokazZestawy(); // zmienione zdjęcie albo nazwa mają być widoczne też w zestawach (funkcja z zestawy.js)
 });
 
 // ---------- EDYCJA I USUWANIE ----------
@@ -252,11 +257,27 @@ document.getElementById('anuluj-edycje').addEventListener('click', function () {
 });
 
 document.getElementById('usun-ubranie').addEventListener('click', async function () {
-  // confirm pokazuje okienko z pytaniem i przyciskami OK / Anuluj. Zwraca true, jeśli klikniesz OK.
-  if (!confirm('Na pewno usunąć to ubranie? Tego nie da się cofnąć.')) return;
-
   const id = edytowaneId;
+
+  // Sprawdzamy, w ilu zestawach jest to ubranie (lista "zestawy" jest w zestawy.js)
+  const wZestawach = zestawy.filter(function (z) { return z.ubrania.includes(id); });
+  let pytanie = 'Na pewno usunąć to ubranie? Tego nie da się cofnąć.';
+  if (wZestawach.length) {
+    pytanie += '\n\nLiczba zestawów z tym ubraniem: ' + wZestawach.length +
+      '. Ubranie zniknie z nich, a reszta zestawów zostanie.';
+  }
+
+  // confirm pokazuje okienko z pytaniem i przyciskami OK / Anuluj. Zwraca true, jeśli klikniesz OK.
+  if (!confirm(pytanie)) return;
+
   await usunUbranieZBazy(id); // funkcja z baza.js
+
+  // Wyjmujemy ubranie ze wszystkich zestawów i zapisujemy je ponownie
+  for (const zestaw of wZestawach) {
+    zestaw.ubrania = zestaw.ubrania.filter(function (u) { return u !== id; });
+    await zapiszZestaw(zestaw);
+  }
+
   // Zostawiamy na liście wszystkie ubrania OPRÓCZ usuniętego
   const pozostale = ubrania.filter(function (u) { return u.id !== id; });
   ubrania.length = 0;
@@ -265,6 +286,7 @@ document.getElementById('usun-ubranie').addEventListener('click', async function
 
   zakonczEdycje();
   pokazUbrania();
+  pokazZestawy();
 });
 
 // ---------- WYŚWIETLANIE LISTY ----------
@@ -390,7 +412,7 @@ function uaktualnijUbranie(ubranie) {
   return zmienione;
 }
 
-// Wczytuje wszystkie ubrania z bazy do listy w pamięci i pokazuje je na stronie
+// Wczytuje wszystkie ubrania i zestawy z bazy do list w pamięci i pokazuje je na stronie
 async function wczytajIPokaz() {
   const zapisane = await wczytajUbrania();
   for (const ubranie of zapisane) {
@@ -398,8 +420,32 @@ async function wczytajIPokaz() {
   }
   ubrania.length = 0;          // czyścimy listę w pamięci...
   ubrania.push(...zapisane);   // ...i wkładamy do niej wszystko z bazy ("..." rozpakowuje listę na pojedyncze elementy)
+
+  const zapisaneZestawy = await wczytajZestawy();
+  zestawy.length = 0;
+  zestawy.push(...zapisaneZestawy);
+
   pokazUbrania();
+  pokazZestawy();
 }
+
+// ---------- ZAKŁADKI ----------
+
+// Pokazuje jeden widok (np. "widok-zestawy"), a drugi chowa
+function pokazWidok(idWidoku) {
+  document.querySelectorAll('.zakladka').forEach(function (zakladka) {
+    // classList.toggle(nazwa, warunek) – dodaje klasę, gdy warunek jest prawdziwy, a usuwa, gdy nie
+    zakladka.classList.toggle('aktywna', zakladka.dataset.widok === idWidoku);
+  });
+  document.getElementById('widok-ubrania').hidden = idWidoku !== 'widok-ubrania';
+  document.getElementById('widok-zestawy').hidden = idWidoku !== 'widok-zestawy';
+  window.scrollTo(0, 0); // na górę strony
+}
+
+document.querySelectorAll('.zakladka').forEach(function (zakladka) {
+  // dataset.widok to wartość atrybutu data-widok z HTML
+  zakladka.addEventListener('click', function () { pokazWidok(zakladka.dataset.widok); });
+});
 
 // ---------- FILTRY ----------
 
@@ -451,13 +497,14 @@ async function tekstNaZdjecie(tekst) {
   return odpowiedz.blob();
 }
 
-// EKSPORT: zbieramy wszystkie ubrania w jeden plik .json i pobieramy go na urządzenie
+// EKSPORT: zbieramy wszystkie ubrania i zestawy w jeden plik .json i pobieramy go na urządzenie
 przyciskEksportu.addEventListener('click', async function () {
   const kopia = {
     aplikacja: 'Moja szafa',
-    wersja: 1, // numer formatu pliku – przyda się, gdy w przyszłości dodamy zestawy i kalendarz
+    wersja: 2, // numer formatu pliku: 1 = same ubrania, 2 = ubrania i zestawy
     utworzono: new Date().toISOString(),
     ubrania: [],
+    zestawy: zestawy, // zestawy to sam tekst i numery ubrań – można je zapisać bez zmian
   };
 
   for (const ubranie of ubrania) {
@@ -475,7 +522,8 @@ przyciskEksportu.addEventListener('click', async function () {
   link.download = 'szafa-kopia-' + dzisiaj + '.json';
   link.click();
 
-  infoKopia.textContent = 'Zapisano kopię: ' + ileUbran(ubrania.length) + ' (' + rozmiarTekstem(plik.size) + ').';
+  infoKopia.textContent = 'Zapisano kopię: ' + ileUbran(ubrania.length) + ', ' +
+    ileZestawow(zestawy.length) + ' (' + rozmiarTekstem(plik.size) + ').';
 });
 
 // IMPORT: wczytujemy plik kopii i dodajemy ubrania do bazy.
@@ -494,8 +542,15 @@ poleImportu.addEventListener('change', async function () {
       await zapiszUbranie(ubranie);
     }
 
+    // Starsze kopie (wersja 1) nie mają zestawów – wtedy bierzemy pustą listę
+    const zestawyZKopii = kopia.zestawy || [];
+    for (const zestaw of zestawyZKopii) {
+      await zapiszZestaw(zestaw);
+    }
+
     await wczytajIPokaz();
-    infoKopia.textContent = 'Zaimportowano ' + ileUbran(kopia.ubrania.length) + '.';
+    infoKopia.textContent = 'Zaimportowano ' + ileUbran(kopia.ubrania.length) + ', ' +
+      ileZestawow(zestawyZKopii.length) + '.';
   } catch (blad) {
     infoKopia.textContent = 'Nie udało się wczytać kopii – to chyba nie jest plik kopii szafy.';
   }
@@ -505,9 +560,13 @@ poleImportu.addEventListener('change', async function () {
 
 // ---------- START ----------
 
-// Po otwarciu strony przygotowujemy filtry i wczytujemy zapisane ubrania
-przygotujFiltry();
-wczytajIPokaz();
+// Po otwarciu strony przygotowujemy filtry i wczytujemy zapisane ubrania i zestawy.
+// "DOMContentLoaded" = "gdy cała strona i wszystkie skrypty są już wczytane" – czekamy na to,
+// bo wczytajIPokaz korzysta też z pliku zestawy.js, który ładuje się po tym pliku.
+document.addEventListener('DOMContentLoaded', function () {
+  przygotujFiltry();
+  wczytajIPokaz();
+});
 
 // Uruchamiamy pomocnika (service worker z pliku sw.js), dzięki któremu aplikacja działa bez internetu.
 // "if" sprawdza, czy przeglądarka w ogóle to obsługuje.

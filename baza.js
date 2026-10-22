@@ -3,8 +3,9 @@
 // Dane zostają na tym urządzeniu, w tej przeglądarce, także po zamknięciu strony.
 
 const NAZWA_BAZY = 'szafa';
-// Numer wersji bazy. Gdy w przyszłości dodamy np. zestawy, podniesiemy go do 2.
-const WERSJA_BAZY = 1;
+// Numer wersji bazy. 1 = tylko ubrania, 2 = doszły zestawy.
+// Gdy podniesiemy numer, przeglądarka uruchomi "onupgradeneeded" poniżej i doda brakujące szuflady.
+const WERSJA_BAZY = 2;
 
 // Otwieramy bazę raz, na starcie. "Promise" (obietnica) to wartość, która będzie gotowa za chwilę –
 // dalej w kodzie mówimy "gdy baza będzie gotowa, zrób to".
@@ -12,9 +13,12 @@ const bazaGotowa = new Promise(function (gotowe, blad) {
   const prosba = indexedDB.open(NAZWA_BAZY, WERSJA_BAZY);
 
   // Wykonuje się tylko przy pierwszym uruchomieniu (albo gdy podniesiemy WERSJA_BAZY).
-  // Tworzymy "szufladę" (object store) na ubrania. Każde ubranie rozpoznajemy po polu "id".
+  // Tworzymy "szuflady" (object store) – każdą tylko wtedy, gdy jeszcze jej nie ma,
+  // żeby nie ruszać ubrań zapisanych wcześniej. Każdą rzecz rozpoznajemy po polu "id".
   prosba.onupgradeneeded = function () {
-    prosba.result.createObjectStore('ubrania', { keyPath: 'id' });
+    const baza = prosba.result;
+    if (!baza.objectStoreNames.contains('ubrania')) baza.createObjectStore('ubrania', { keyPath: 'id' });
+    if (!baza.objectStoreNames.contains('zestawy')) baza.createObjectStore('zestawy', { keyPath: 'id' });
   };
 
   prosba.onsuccess = function () { gotowe(prosba.result); };
@@ -30,26 +34,37 @@ function naObietnice(prosba) {
   });
 }
 
-// Zwraca listę wszystkich zapisanych ubrań
-function wczytajUbrania() {
+// Trzy uniwersalne funkcje – działają dla każdej szuflady ("ubrania" albo "zestawy")
+
+// Zwraca listę wszystkiego z danej szuflady
+function wczytajWszystko(szuflada) {
   return bazaGotowa.then(function (baza) {
-    return naObietnice(baza.transaction('ubrania', 'readonly').objectStore('ubrania').getAll());
+    return naObietnice(baza.transaction(szuflada, 'readonly').objectStore(szuflada).getAll());
   });
 }
 
-// Zapisuje jedno ubranie. Jeśli ubranie o tym samym id już jest – zostanie nadpisane.
-function zapiszUbranie(ubranie) {
+// Zapisuje jedną rzecz. Jeśli rzecz o tym samym id już jest – zostanie nadpisana.
+function zapiszWBazie(szuflada, rzecz) {
   return bazaGotowa.then(function (baza) {
-    return naObietnice(baza.transaction('ubrania', 'readwrite').objectStore('ubrania').put(ubranie));
+    return naObietnice(baza.transaction(szuflada, 'readwrite').objectStore(szuflada).put(rzecz));
   });
 }
 
-// Usuwa ubranie o podanym id
-function usunUbranieZBazy(id) {
+// Usuwa rzecz o podanym id
+function usunZBazy(szuflada, id) {
   return bazaGotowa.then(function (baza) {
-    return naObietnice(baza.transaction('ubrania', 'readwrite').objectStore('ubrania').delete(id));
+    return naObietnice(baza.transaction(szuflada, 'readwrite').objectStore(szuflada).delete(id));
   });
 }
+
+// Krótsze nazwy dla reszty aplikacji
+function wczytajUbrania() { return wczytajWszystko('ubrania'); }
+function zapiszUbranie(ubranie) { return zapiszWBazie('ubrania', ubranie); }
+function usunUbranieZBazy(id) { return usunZBazy('ubrania', id); }
+
+function wczytajZestawy() { return wczytajWszystko('zestawy'); }
+function zapiszZestaw(zestaw) { return zapiszWBazie('zestawy', zestaw); }
+function usunZestawZBazy(id) { return usunZBazy('zestawy', id); }
 
 // Prosimy przeglądarkę, żeby nie kasowała naszych danych, gdy zabraknie miejsca na dysku.
 // Przeglądarka może się nie zgodzić – wtedy tym bardziej warto robić kopie (eksport).
