@@ -28,6 +28,10 @@ const pusto = document.getElementById('pusto');
 const przyciskEksportu = document.getElementById('eksport');
 const poleImportu = document.getElementById('import');
 const infoKopia = document.getElementById('info-kopia');
+const filtry = document.getElementById('filtry');
+const filtrKategoria = document.getElementById('filtr-kategoria');
+const filtrKolor = document.getElementById('filtr-kolor');
+const licznik = document.getElementById('licznik');
 
 // ---------- ZMNIEJSZANIE ZDJĘCIA ----------
 
@@ -122,18 +126,68 @@ formularz.addEventListener('submit', async function (zdarzenie) {
 
 // ---------- WYŚWIETLANIE LISTY ----------
 
-// Rysuje od nowa wszystkie kafelki z ubraniami
+// Każde zdjęcie dostaje tymczasowy adres, żeby <img> mógł je pokazać.
+// Zapamiętujemy adresy (Map = "słownik": id ubrania -> adres), żeby przy każdym
+// kliknięciu w filtr nie tworzyć nowych – inaczej telefon zapychałby sobie pamięć.
+const adresyZdjec = new Map();
+
+function adresZdjecia(ubranie) {
+  if (!adresyZdjec.has(ubranie.id)) {
+    adresyZdjec.set(ubranie.id, URL.createObjectURL(ubranie.zdjecie));
+  }
+  return adresyZdjec.get(ubranie.id);
+}
+
+// Czy ubranie pasuje do wybranych filtrów? Zwraca true (tak) albo false (nie).
+function pasujeDoFiltrow(ubranie) {
+  const kategoria = filtrKategoria.value; // "" = Wszystkie
+  const kolor = filtrKolor.value;
+  const sezony = zaznaczone('filtr-sezony');
+  const okazje = zaznaczone('filtr-okazje');
+
+  // Każdy warunek, który NIE jest spełniony, od razu odrzuca ubranie ("return false")
+  if (kategoria && ubranie.kategoria !== kategoria) return false;
+  if (kolor && ubranie.kolor !== kolor) return false;
+
+  // Sezon: wystarczy, że ubranie ma CHOĆ JEDEN z zaznaczonych sezonów (some = "którykolwiek").
+  // Ubranie bez sezonów to "każdy sezon" – pasuje zawsze.
+  if (sezony.length && ubranie.sezony.length &&
+      !sezony.some(function (s) { return ubranie.sezony.includes(s); })) return false;
+
+  // Okazja: tak samo jak sezon
+  if (okazje.length && ubranie.okazje.length &&
+      !okazje.some(function (o) { return ubranie.okazje.includes(o); })) return false;
+
+  return true; // przeszło przez wszystkie warunki
+}
+
+// Rysuje od nowa kafelki z ubraniami – tylko te, które pasują do filtrów
 function pokazUbrania() {
   lista.innerHTML = ''; // czyścimy stare kafelki
-  pusto.hidden = ubrania.length > 0; // napis "pusta szafa" tylko, gdy nie ma ubrań
 
-  // Dla każdego ubrania tworzymy kafelek
-  ubrania.forEach(function (ubranie) {
+  // filter zostawia z listy tylko elementy, dla których pasujeDoFiltrow zwraca true
+  const widoczne = ubrania.filter(pasujeDoFiltrow);
+
+  // Filtry i licznik pokazujemy dopiero, gdy w szafie coś jest
+  filtry.hidden = ubrania.length === 0;
+  licznik.hidden = ubrania.length === 0;
+  licznik.textContent = widoczne.length === ubrania.length
+    ? 'Wszystkie: ' + ileUbran(ubrania.length)
+    : 'Pokazuję ' + widoczne.length + ' z ' + ileUbran(ubrania.length);
+
+  // Komunikat, gdy nie ma czego pokazać – inny dla pustej szafy, inny dla "nic nie pasuje"
+  pusto.hidden = widoczne.length > 0;
+  pusto.textContent = ubrania.length === 0
+    ? 'Twoja szafa jest jeszcze pusta.'
+    : 'Żadne ubranie nie pasuje do wybranych filtrów.';
+
+  // Dla każdego widocznego ubrania tworzymy kafelek
+  widoczne.forEach(function (ubranie) {
     const kafelek = document.createElement('div');
     kafelek.className = 'kafelek';
 
     const img = document.createElement('img');
-    img.src = URL.createObjectURL(ubranie.zdjecie);
+    img.src = adresZdjecia(ubranie);
     img.alt = ubranie.kategoria + ', ' + ubranie.kolor;
 
     const opis = document.createElement('div');
@@ -157,6 +211,31 @@ async function wczytajIPokaz() {
   ubrania.push(...zapisane);   // ...i wkładamy do niej wszystko z bazy ("..." rozpakowuje listę na pojedyncze elementy)
   pokazUbrania();
 }
+
+// ---------- FILTRY ----------
+
+// Kopiujemy opcje z formularza do filtrów – dzięki temu listy kategorii, kolorów itd. są w jednym miejscu
+function przygotujFiltry() {
+  filtrKategoria.innerHTML = document.getElementById('kategoria').innerHTML;
+  filtrKolor.innerHTML = document.getElementById('kolor').innerHTML;
+  // Pierwsza opcja w formularzu to "— wybierz —"; w filtrach znaczy "pokaż wszystko"
+  filtrKategoria.options[0].textContent = 'Wszystkie';
+  filtrKolor.options[0].textContent = 'Wszystkie';
+
+  document.getElementById('filtr-sezony').innerHTML = document.getElementById('sezony').innerHTML;
+  document.getElementById('filtr-okazje').innerHTML = document.getElementById('okazje').innerHTML;
+}
+
+// Każda zmiana w panelu filtrów (wybór z listy, zaznaczenie pigułki) od razu odświeża listę
+filtry.addEventListener('change', pokazUbrania);
+
+// "Wyczyść filtry" – wracamy do "Wszystkie" i odznaczamy pigułki
+document.getElementById('wyczysc-filtry').addEventListener('click', function () {
+  filtrKategoria.value = '';
+  filtrKolor.value = '';
+  filtry.querySelectorAll('input:checked').forEach(function (pole) { pole.checked = false; });
+  pokazUbrania();
+});
 
 // ---------- KOPIA ZAPASOWA ----------
 
@@ -230,7 +309,8 @@ poleImportu.addEventListener('change', async function () {
 
 // ---------- START ----------
 
-// Po otwarciu strony od razu wczytujemy zapisane ubrania
+// Po otwarciu strony przygotowujemy filtry i wczytujemy zapisane ubrania
+przygotujFiltry();
 wczytajIPokaz();
 
 // Uruchamiamy pomocnika (service worker z pliku sw.js), dzięki któremu aplikacja działa bez internetu.

@@ -115,6 +115,13 @@ h2 {
   background: white;
 }
 
+/* Zaznaczona "pigułka" robi się zielona. :has(input:checked) = "etykieta, w której pole jest zaznaczone" */
+.opcje label:has(input:checked) {
+  background: var(--akcent);
+  border-color: var(--akcent);
+  color: white;
+}
+
 /* Podgląd zdjęcia w formularzu */
 .podglad {
   display: block;
@@ -143,6 +150,23 @@ h2 {
   border: 1px solid var(--akcent);
   text-align: center;
   box-sizing: border-box;
+}
+
+/* ---------- FILTRY ---------- */
+
+.filtry {
+  margin-bottom: 12px;
+}
+
+/* Kategoria i kolor obok siebie, po połowie szerokości */
+.filtry-wiersz {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.licznik {
+  margin: 0 0 8px;
 }
 
 /* ---------- KOPIA ZAPASOWA ---------- */

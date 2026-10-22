@@ -107,6 +107,33 @@
 
     <!-- LISTA UBRAŃ -->
     <h2>Moje ubrania</h2>
+
+    <!-- FILTRY. Opcje w środku (kategorie, kolory, sezony, okazje) skopiuje JavaScript z formularza powyżej,
+         żeby listy były zawsze takie same – gdy dodasz nowy kolor w formularzu, pojawi się też w filtrach -->
+    <section id="filtry" class="karta filtry">
+      <div class="filtry-wiersz">
+        <label class="pole">
+          Kategoria
+          <select id="filtr-kategoria"></select>
+        </label>
+        <label class="pole">
+          Kolor
+          <select id="filtr-kolor"></select>
+        </label>
+      </div>
+      <fieldset class="pole">
+        <legend>Sezon</legend>
+        <div class="opcje" id="filtr-sezony"></div>
+      </fieldset>
+      <fieldset class="pole">
+        <legend>Okazja</legend>
+        <div class="opcje" id="filtr-okazje"></div>
+      </fieldset>
+      <button type="button" id="wyczysc-filtry" class="przycisk przycisk-jasny">Wyczyść filtry</button>
+    </section>
+
+    <!-- Licznik, np. "Pokazuję 3 z 12 ubrań" -->
+    <p id="licznik" class="maly-tekst licznik"></p>
     <p id="pusto" class="pusto">Twoja szafa jest jeszcze pusta.</p>
     <!-- Ten pojemnik wypełni JavaScript kafelkami z ubraniami -->
     <div id="lista" class="siatka"></div>
