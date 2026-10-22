@@ -7,6 +7,30 @@ const MAKS_ROZMIAR = 1000;
 // Jakość zapisu JPEG: 1 = najlepsza (duży plik), 0.8 = prawie bez różnicy dla oka, a plik dużo mniejszy
 const JAKOSC = 0.8;
 
+// ---------- KATEGORIE ----------
+
+// Wszystkie kategorie i ich rodzaje (podkategorie) – JEDYNE miejsce, gdzie są zapisane.
+// Formularz i filtry biorą je stąd. Chcesz dodać rodzaj? Dopisz go w nawiasie [ ] po przecinku.
+// Chcesz dodać kategorię? Dopisz nową linijkę: 'Nazwa': ['rodzaj 1', 'rodzaj 2'],
+const KATEGORIE = {
+  'Góra ciepła': ['T-shirt', 'Bluzka', 'Koszula', 'Tank top', 'Longsleeve'],
+  'Góra zimna': ['Sweter', 'Bluza'],
+  'Dół spodnie': ['Materiałowe', 'Jeansy', 'Szorty', 'Legginsy', 'Legginsy dzwony', 'Bikery'],
+  'Dół spódnica': ['Krótka', 'Midi', 'Długa'],
+  'Sukienka / kombinezon': ['Krótka', 'Midi', 'Długa', 'Kombinezon'],
+  'Okrycie wierzchnie': ['Kurtka', 'Płaszcz', 'Marynarka', 'Kamizelka'],
+  'Buty': ['Sneakersy', 'Botki', 'Kozaki', 'Szpilki', 'Sandały', 'Baleriny', 'Mokasyny', 'Japonki', 'Klapki'],
+  'Dodatki': ['Torba', 'Torebka', 'Szalik', 'Chusta', 'Czapka', 'Czapka z daszkiem', 'Pasek', 'Rękawiczki', 'Biżuteria'],
+};
+
+// Stare nazwy kategorii (sprzed tej zmiany) -> nowe. Dzięki temu ubrania dodane wcześniej
+// (i stare kopie zapasowe) trafią do nowych kategorii. Rodzaj trzeba będzie im uzupełnić ręcznie.
+const STARE_KATEGORIE = {
+  'Góra': 'Góra ciepła',
+  'Dół': 'Dół spodnie',
+  'Sukienka': 'Sukienka / kombinezon',
+};
+
 // ---------- DANE ----------
 
 // Tablica (lista) wszystkich ubrań – kopia robocza w pamięci strony.
@@ -29,7 +53,10 @@ const przyciskEksportu = document.getElementById('eksport');
 const poleImportu = document.getElementById('import');
 const infoKopia = document.getElementById('info-kopia');
 const filtry = document.getElementById('filtry');
+const poleKategorii = document.getElementById('kategoria');
+const polePodkategorii = document.getElementById('podkategoria');
 const filtrKategoria = document.getElementById('filtr-kategoria');
+const filtrPodkategoria = document.getElementById('filtr-podkategoria');
 const filtrKolor = document.getElementById('filtr-kolor');
 const licznik = document.getElementById('licznik');
 
@@ -88,6 +115,31 @@ poleZdjecia.addEventListener('change', async function () {
     'Zdjęcie zmniejszone: ' + rozmiarTekstem(plik.size) + ' → ' + rozmiarTekstem(zmniejszoneZdjecie.size);
 });
 
+// ---------- LISTY ROZWIJANE ----------
+
+// Wypełnia listę rozwijaną: pierwsza opcja "pusta" (np. "— wybierz —"), potem wszystkie z listy
+function wypelnijListe(lista, opcje, pierwszaOpcja) {
+  lista.innerHTML = '';
+  lista.append(new Option(pierwszaOpcja, '')); // new Option(tekst, wartość)
+  opcje.forEach(function (opcja) { lista.append(new Option(opcja, opcja)); });
+}
+
+// Ustawia listę rodzajów pasującą do wybranej kategorii.
+// Gdy kategoria nie jest wybrana – lista jest pusta i wyłączona.
+function wypelnijRodzaje(listaRodzajow, kategoria, pierwszaOpcja) {
+  wypelnijListe(listaRodzajow, KATEGORIE[kategoria] || [], pierwszaOpcja);
+  listaRodzajow.disabled = !kategoria;
+}
+
+// Na starcie wpisujemy kategorie do formularza
+wypelnijListe(poleKategorii, Object.keys(KATEGORIE), '— wybierz —'); // Object.keys = same nazwy kategorii
+wypelnijRodzaje(polePodkategorii, '', '— najpierw kategoria —');
+
+// Gdy zmienisz kategorię w formularzu – podmieniamy listę rodzajów
+poleKategorii.addEventListener('change', function () {
+  wypelnijRodzaje(polePodkategorii, poleKategorii.value, '— wybierz —');
+});
+
 // ---------- DODAWANIE UBRANIA ----------
 
 // Zbiera wartości zaznaczonych checkboxów z danej grupy, np. ["Jesień", "Zima"]
@@ -107,10 +159,12 @@ formularz.addEventListener('submit', async function (zdarzenie) {
   const ubranie = {
     id: Date.now(), // unikalny numer: liczba milisekund od 1970 roku
     zdjecie: zmniejszoneZdjecie,
-    kategoria: document.getElementById('kategoria').value,
+    kategoria: poleKategorii.value,
+    podkategoria: polePodkategorii.value,
     kolor: document.getElementById('kolor').value,
     sezony: zaznaczone('sezony'),
     okazje: zaznaczone('okazje'),
+    notatka: document.getElementById('notatka').value.trim(), // trim() obcina spacje na początku i końcu
   };
 
   await zapiszUbranie(ubranie); // zapisujemy na stałe w bazie (funkcja z baza.js)
@@ -119,6 +173,7 @@ formularz.addEventListener('submit', async function (zdarzenie) {
 
   // Czyścimy formularz, żeby można było dodać kolejne ubranie
   formularz.reset();
+  wypelnijRodzaje(polePodkategorii, '', '— najpierw kategoria —');
   podglad.hidden = true;
   infoZdjecie.textContent = '';
   zmniejszoneZdjecie = null;
@@ -141,12 +196,14 @@ function adresZdjecia(ubranie) {
 // Czy ubranie pasuje do wybranych filtrów? Zwraca true (tak) albo false (nie).
 function pasujeDoFiltrow(ubranie) {
   const kategoria = filtrKategoria.value; // "" = Wszystkie
+  const podkategoria = filtrPodkategoria.value;
   const kolor = filtrKolor.value;
   const sezony = zaznaczone('filtr-sezony');
   const okazje = zaznaczone('filtr-okazje');
 
   // Każdy warunek, który NIE jest spełniony, od razu odrzuca ubranie ("return false")
   if (kategoria && ubranie.kategoria !== kategoria) return false;
+  if (podkategoria && ubranie.podkategoria !== podkategoria) return false;
   if (kolor && ubranie.kolor !== kolor) return false;
 
   // Sezon: wystarczy, że ubranie ma CHOĆ JEDEN z zaznaczonych sezonów (some = "którykolwiek").
@@ -188,25 +245,56 @@ function pokazUbrania() {
 
     const img = document.createElement('img');
     img.src = adresZdjecia(ubranie);
-    img.alt = ubranie.kategoria + ', ' + ubranie.kolor;
+    // Nazwa ubrania: rodzaj (np. "Sweter"), a gdy go brak – kategoria
+    const nazwa = ubranie.podkategoria || ubranie.kategoria;
+    img.alt = nazwa + ', ' + ubranie.kolor;
 
     const opis = document.createElement('div');
     opis.className = 'opis';
+
+    // Każdą linijkę opisu tworzymy osobno i wpisujemy przez textContent (a nie innerHTML).
+    // To ważne przy notatce, którą piszesz sama: textContent zawsze traktuje ją jako zwykły tekst,
+    // więc nawet wpisane znaki < > nie zostaną potraktowane jak kod HTML.
+    function linijka(tekst, klasa) {
+      const element = document.createElement(klasa === 'nazwa' ? 'strong' : 'div');
+      if (klasa === 'notatka') element.className = 'notatka';
+      element.textContent = tekst;
+      opis.append(element);
+    }
+
+    linijka(nazwa, 'nazwa');
+    if (ubranie.podkategoria) linijka(ubranie.kategoria);
+    linijka(ubranie.kolor);
     // join(', ') łączy listę w tekst: ["Jesień", "Zima"] -> "Jesień, Zima"
-    opis.innerHTML =
-      '<strong>' + ubranie.kategoria + '</strong>' +
-      ubranie.kolor + '<br>' +
-      (ubranie.sezony.join(', ') || 'każdy sezon') + '<br>' +
-      (ubranie.okazje.join(', ') || 'każda okazja');
+    linijka(ubranie.sezony.join(', ') || 'każdy sezon');
+    linijka(ubranie.okazje.join(', ') || 'każda okazja');
+    if (ubranie.notatka) linijka(ubranie.notatka, 'notatka');
 
     kafelek.append(img, opis);
     lista.append(kafelek);
   });
 }
 
+// Dopasowuje ubranie zapisane starszą wersją aplikacji do obecnej:
+// zmienia stare nazwy kategorii na nowe i dodaje brakujące pola.
+// Zwraca true, jeśli coś zmieniło (wtedy trzeba ubranie zapisać ponownie).
+function uaktualnijUbranie(ubranie) {
+  let zmienione = false;
+  if (STARE_KATEGORIE[ubranie.kategoria]) {
+    ubranie.kategoria = STARE_KATEGORIE[ubranie.kategoria];
+    zmienione = true;
+  }
+  if (ubranie.podkategoria === undefined) { ubranie.podkategoria = ''; zmienione = true; }
+  if (ubranie.notatka === undefined) { ubranie.notatka = ''; zmienione = true; }
+  return zmienione;
+}
+
 // Wczytuje wszystkie ubrania z bazy do listy w pamięci i pokazuje je na stronie
 async function wczytajIPokaz() {
   const zapisane = await wczytajUbrania();
+  for (const ubranie of zapisane) {
+    if (uaktualnijUbranie(ubranie)) await zapiszUbranie(ubranie);
+  }
   ubrania.length = 0;          // czyścimy listę w pamięci...
   ubrania.push(...zapisane);   // ...i wkładamy do niej wszystko z bazy ("..." rozpakowuje listę na pojedyncze elementy)
   pokazUbrania();
@@ -214,17 +302,23 @@ async function wczytajIPokaz() {
 
 // ---------- FILTRY ----------
 
-// Kopiujemy opcje z formularza do filtrów – dzięki temu listy kategorii, kolorów itd. są w jednym miejscu
+// Wypełniamy filtry tymi samymi opcjami co formularz – listy są w jednym miejscu
 function przygotujFiltry() {
-  filtrKategoria.innerHTML = document.getElementById('kategoria').innerHTML;
+  wypelnijListe(filtrKategoria, Object.keys(KATEGORIE), 'Wszystkie');
+  wypelnijRodzaje(filtrPodkategoria, '', 'Wszystkie');
+  // Kolory kopiujemy z formularza w HTML
   filtrKolor.innerHTML = document.getElementById('kolor').innerHTML;
   // Pierwsza opcja w formularzu to "— wybierz —"; w filtrach znaczy "pokaż wszystko"
-  filtrKategoria.options[0].textContent = 'Wszystkie';
   filtrKolor.options[0].textContent = 'Wszystkie';
 
   document.getElementById('filtr-sezony').innerHTML = document.getElementById('sezony').innerHTML;
   document.getElementById('filtr-okazje').innerHTML = document.getElementById('okazje').innerHTML;
 }
+
+// Zmiana kategorii w filtrach podmienia listę rodzajów (dzieje się to przed odświeżeniem listy poniżej)
+filtrKategoria.addEventListener('change', function () {
+  wypelnijRodzaje(filtrPodkategoria, filtrKategoria.value, 'Wszystkie');
+});
 
 // Każda zmiana w panelu filtrów (wybór z listy, zaznaczenie pigułki) od razu odświeża listę
 filtry.addEventListener('change', pokazUbrania);
@@ -232,6 +326,7 @@ filtry.addEventListener('change', pokazUbrania);
 // "Wyczyść filtry" – wracamy do "Wszystkie" i odznaczamy pigułki
 document.getElementById('wyczysc-filtry').addEventListener('click', function () {
   filtrKategoria.value = '';
+  wypelnijRodzaje(filtrPodkategoria, '', 'Wszystkie');
   filtrKolor.value = '';
   filtry.querySelectorAll('input:checked').forEach(function (pole) { pole.checked = false; });
   pokazUbrania();

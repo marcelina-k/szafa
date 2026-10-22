@@ -88,7 +88,8 @@ h2 {
 
 /* Lista rozwijana i pole zdjęcia na całą szerokość */
 .pole select,
-.pole input[type="file"] {
+.pole input[type="file"],
+.pole input[type="text"] {
   display: block;
   width: 100%;
   margin-top: 6px;
@@ -221,4 +222,15 @@ h2 {
 .kafelek .opis strong {
   display: block;
   font-size: 0.9rem;
+}
+
+/* Notatka w kafelku – kursywą, żeby odróżniała się od reszty opisu */
+.kafelek .notatka {
+  font-style: italic;
+  color: var(--szary);
+}
+
+/* Wyłączona lista (np. "Rodzaj", zanim wybierzesz kategorię) – wyszarzona */
+.pole select:disabled {
+  opacity: 0.5;
 }

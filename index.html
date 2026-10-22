@@ -45,18 +45,17 @@
       <img id="podglad" class="podglad" alt="" hidden>
       <p id="info-zdjecie" class="maly-tekst"></p>
 
-      <!-- Lista rozwijana (select) – wybierasz JEDNĄ opcję -->
+      <!-- Listy rozwijane (select) – wybierasz JEDNĄ opcję.
+           Kategorie i podkategorie wpisuje tu JavaScript z listy KATEGORIE na początku pliku app.js -->
       <label class="pole">
         Kategoria
-        <select id="kategoria" required>
-          <option value="">— wybierz —</option>
-          <option>Góra</option>
-          <option>Dół</option>
-          <option>Sukienka</option>
-          <option>Okrycie wierzchnie</option>
-          <option>Buty</option>
-          <option>Dodatki</option>
-        </select>
+        <select id="kategoria" required></select>
+      </label>
+
+      <!-- Lista podkategorii zmienia się zależnie od wybranej kategorii -->
+      <label class="pole">
+        Rodzaj
+        <select id="podkategoria" required disabled></select>
       </label>
 
       <label class="pole">
@@ -102,6 +101,12 @@
         </div>
       </fieldset>
 
+      <!-- Pole tekstowe na dowolny dopisek. maxlength = najwyżej 100 znaków -->
+      <label class="pole">
+        Notatka <span class="maly-tekst">(opcjonalnie)</span>
+        <input type="text" id="notatka" maxlength="100" placeholder="np. w paski, w kratkę, z kokardą">
+      </label>
+
       <button type="submit" class="przycisk">Dodaj do szafy</button>
     </form>
 
@@ -115,6 +120,10 @@
         <label class="pole">
           Kategoria
           <select id="filtr-kategoria"></select>
+        </label>
+        <label class="pole">
+          Rodzaj
+          <select id="filtr-podkategoria" disabled></select>
         </label>
         <label class="pole">
           Kolor
