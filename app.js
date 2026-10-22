@@ -9,8 +9,8 @@ const JAKOSC = 0.8;
 
 // ---------- DANE ----------
 
-// Tablica (lista) wszystkich ubrań. Na razie żyje tylko w pamięci strony –
-// po odświeżeniu znika. Trwały zapis dodamy w kroku 3.
+// Tablica (lista) wszystkich ubrań – kopia robocza w pamięci strony.
+// Na stałe ubrania leżą w bazie (patrz baza.js); przy starcie wczytujemy je stamtąd.
 const ubrania = [];
 
 // Tu trzymamy zmniejszone zdjęcie, zanim klikniesz "Dodaj do szafy"
@@ -25,6 +25,9 @@ const podglad = document.getElementById('podglad');
 const infoZdjecie = document.getElementById('info-zdjecie');
 const lista = document.getElementById('lista');
 const pusto = document.getElementById('pusto');
+const przyciskEksportu = document.getElementById('eksport');
+const poleImportu = document.getElementById('import');
+const infoKopia = document.getElementById('info-kopia');
 
 // ---------- ZMNIEJSZANIE ZDJĘCIA ----------
 
@@ -59,6 +62,15 @@ function rozmiarTekstem(bajty) {
   return Math.round(bajty / 1024) + ' KB';
 }
 
+// Odmienia słowo "ubranie" po polsku: 1 ubranie, 2 ubrania, 5 ubrań, 22 ubrania, 12 ubrań
+function ileUbran(liczba) {
+  if (liczba === 1) return '1 ubranie';
+  const jednosci = liczba % 10;   // ostatnia cyfra (% to reszta z dzielenia)
+  const dziesiatki = liczba % 100; // dwie ostatnie cyfry
+  if (jednosci >= 2 && jednosci <= 4 && (dziesiatki < 12 || dziesiatki > 14)) return liczba + ' ubrania';
+  return liczba + ' ubrań';
+}
+
 // Gdy wybierzesz zdjęcie (zdarzenie "change") – od razu je zmniejszamy i pokazujemy podgląd
 poleZdjecia.addEventListener('change', async function () {
   const plik = poleZdjecia.files[0];
@@ -81,7 +93,7 @@ function zaznaczone(idGrupy) {
 }
 
 // Gdy klikniesz "Dodaj do szafy" (zdarzenie "submit")
-formularz.addEventListener('submit', function (zdarzenie) {
+formularz.addEventListener('submit', async function (zdarzenie) {
   // Domyślnie formularz przeładowałby stronę – blokujemy to, bo sami obsłużymy dane
   zdarzenie.preventDefault();
 
@@ -97,7 +109,8 @@ formularz.addEventListener('submit', function (zdarzenie) {
     okazje: zaznaczone('okazje'),
   };
 
-  ubrania.push(ubranie); // dodajemy na koniec listy
+  await zapiszUbranie(ubranie); // zapisujemy na stałe w bazie (funkcja z baza.js)
+  ubrania.push(ubranie);        // i dodajemy na koniec listy w pamięci
   pokazUbrania();
 
   // Czyścimy formularz, żeby można było dodać kolejne ubranie
@@ -136,3 +149,86 @@ function pokazUbrania() {
     lista.append(kafelek);
   });
 }
+
+// Wczytuje wszystkie ubrania z bazy do listy w pamięci i pokazuje je na stronie
+async function wczytajIPokaz() {
+  const zapisane = await wczytajUbrania();
+  ubrania.length = 0;          // czyścimy listę w pamięci...
+  ubrania.push(...zapisane);   // ...i wkładamy do niej wszystko z bazy ("..." rozpakowuje listę na pojedyncze elementy)
+  pokazUbrania();
+}
+
+// ---------- KOPIA ZAPASOWA ----------
+
+// Zdjęcie (Blob) zamieniamy na długi tekst, bo plik kopii (JSON) może zawierać tylko tekst.
+// Wynik wygląda tak: "data:image/jpeg;base64,/9j/4AAQSkZJRg..."
+function zdjecieNaTekst(zdjecie) {
+  return new Promise(function (gotowe) {
+    const czytnik = new FileReader();
+    czytnik.onload = function () { gotowe(czytnik.result); };
+    czytnik.readAsDataURL(zdjecie);
+  });
+}
+
+// I odwrotnie: tekst z pliku kopii zamieniamy z powrotem na zdjęcie
+async function tekstNaZdjecie(tekst) {
+  const odpowiedz = await fetch(tekst);
+  return odpowiedz.blob();
+}
+
+// EKSPORT: zbieramy wszystkie ubrania w jeden plik .json i pobieramy go na urządzenie
+przyciskEksportu.addEventListener('click', async function () {
+  const kopia = {
+    aplikacja: 'Moja szafa',
+    wersja: 1, // numer formatu pliku – przyda się, gdy w przyszłości dodamy zestawy i kalendarz
+    utworzono: new Date().toISOString(),
+    ubrania: [],
+  };
+
+  for (const ubranie of ubrania) {
+    // { ...ubranie, zdjecie: X } = "skopiuj wszystkie pola ubrania, ale zdjęcie podmień na X"
+    kopia.ubrania.push({ ...ubranie, zdjecie: await zdjecieNaTekst(ubranie.zdjecie) });
+  }
+
+  // JSON.stringify zamienia obiekt na tekst, który można zapisać do pliku
+  const plik = new Blob([JSON.stringify(kopia)], { type: 'application/json' });
+  const dzisiaj = new Date().toISOString().slice(0, 10); // np. "2026-10-21"
+
+  // Sztuczka: tworzymy niewidoczny link do pliku i "klikamy" go – przeglądarka pobiera plik
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(plik);
+  link.download = 'szafa-kopia-' + dzisiaj + '.json';
+  link.click();
+
+  infoKopia.textContent = 'Zapisano kopię: ' + ileUbran(ubrania.length) + ' (' + rozmiarTekstem(plik.size) + ').';
+});
+
+// IMPORT: wczytujemy plik kopii i dodajemy ubrania do bazy.
+// Ubrania, które już są w szafie (to samo id), zostaną nadpisane – nic się nie zdubluje.
+poleImportu.addEventListener('change', async function () {
+  const plik = poleImportu.files[0];
+  if (!plik) return;
+
+  // try/catch = "spróbuj; jeśli coś pójdzie nie tak, nie psuj strony, tylko pokaż komunikat"
+  try {
+    const kopia = JSON.parse(await plik.text()); // tekst z pliku -> obiekt
+    if (!Array.isArray(kopia.ubrania)) throw new Error('brak listy ubrań');
+
+    for (const ubranie of kopia.ubrania) {
+      ubranie.zdjecie = await tekstNaZdjecie(ubranie.zdjecie);
+      await zapiszUbranie(ubranie);
+    }
+
+    await wczytajIPokaz();
+    infoKopia.textContent = 'Zaimportowano ' + ileUbran(kopia.ubrania.length) + '.';
+  } catch (blad) {
+    infoKopia.textContent = 'Nie udało się wczytać kopii – to chyba nie jest plik kopii szafy.';
+  }
+
+  poleImportu.value = ''; // pozwala wybrać ten sam plik jeszcze raz
+});
+
+// ---------- START ----------
+
+// Po otwarciu strony od razu wczytujemy zapisane ubrania
+wczytajIPokaz();

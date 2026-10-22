@@ -136,6 +136,28 @@ h2 {
   cursor: pointer;
 }
 
+/* Jaśniejsza wersja przycisku – do mniej ważnych akcji */
+.przycisk-jasny {
+  background: white;
+  color: var(--akcent);
+  border: 1px solid var(--akcent);
+  text-align: center;
+  box-sizing: border-box;
+}
+
+/* ---------- KOPIA ZAPASOWA ---------- */
+
+.kopia {
+  margin-top: 32px;
+}
+
+/* Dwa przyciski obok siebie, po połowie szerokości */
+.przyciski {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
 /* ---------- LISTA UBRAŃ ---------- */
 
 /* Siatka: 2 kolumny na telefonie */

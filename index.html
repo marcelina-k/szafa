@@ -99,9 +99,26 @@
     <!-- Ten pojemnik wypełni JavaScript kafelkami z ubraniami -->
     <div id="lista" class="siatka"></div>
 
+    <!-- KOPIA ZAPASOWA -->
+    <section class="karta kopia">
+      <h2>Kopia zapasowa</h2>
+      <p class="maly-tekst">Ubrania są zapisane tylko w tej przeglądarce. Co jakiś czas zrób kopię i trzymaj ją w bezpiecznym miejscu.</p>
+      <div class="przyciski">
+        <button type="button" id="eksport" class="przycisk przycisk-jasny">Eksportuj kopię</button>
+        <!-- Przycisk importu to tak naprawdę ukryte pole wyboru pliku, "przebrane" za przycisk -->
+        <label class="przycisk przycisk-jasny">
+          Importuj kopię
+          <input type="file" id="import" accept=".json,application/json" hidden>
+        </label>
+      </div>
+      <p id="info-kopia" class="maly-tekst"></p>
+    </section>
+
   </main>
 
-  <!-- Podłączamy plik z zachowaniem strony (JavaScript). Na końcu, żeby elementy powyżej już istniały -->
+  <!-- Podłączamy pliki z zachowaniem strony (JavaScript). Na końcu, żeby elementy powyżej już istniały.
+       Najpierw baza.js (zapis danych), potem app.js, który z niej korzysta -->
+  <script src="baza.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
