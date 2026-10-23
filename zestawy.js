@@ -63,6 +63,7 @@ function pokazWyborUbran() {
       const img = document.createElement('img');
       img.src = adresZdjecia(ubranie);
       img.alt = '';
+      if (czyWyciete(ubranie)) img.className = 'wyciete';
 
       const podpis = document.createElement('span');
       podpis.textContent = (ubranie.podkategoria || ubranie.kategoria) + ', ' + ubranie.kolor.toLowerCase();
@@ -102,6 +103,7 @@ function otworzFormularzZestawu(zestaw) {
     poleNazwyZestawu.value = zestaw.nazwa;
     zaznaczPigulki('zestaw-sezony', zestaw.sezony);   // funkcja z app.js
     zaznaczPigulki('zestaw-okazje', zestaw.okazje);
+    document.getElementById('zestaw-ulubiony').checked = Boolean(zestaw.ulubiony);
     wybraneUbrania = zestaw.ubrania.slice(); // slice() robi kopię listy – zmiany nie ruszą zestawu, dopóki nie zapiszesz
     przyciskUsunZestaw.hidden = false;
   } else {
@@ -146,6 +148,7 @@ formularzZestawu.addEventListener('submit', async function (zdarzenie) {
     ubrania: wybraneUbrania.slice(),
     sezony: zaznaczone('zestaw-sezony'),
     okazje: zaznaczone('zestaw-okazje'),
+    ulubiony: document.getElementById('zestaw-ulubiony').checked,
   };
 
   await zapiszZestaw(zestaw); // funkcja z baza.js
@@ -173,26 +176,38 @@ przyciskUsunZestaw.addEventListener('click', async function () {
 
 // ---------- LISTA ZESTAWÓW ----------
 
+const tylkoUlubioneZestawy = document.getElementById('zestawy-tylko-ulubione');
+tylkoUlubioneZestawy.addEventListener('change', function () { pokazZestawy(); });
+
 function pokazZestawy() {
   listaZestawow.innerHTML = '';
 
-  // Komunikat, gdy nie ma zestawów (inny, gdy nie ma jeszcze nawet ubrań)
-  pustoZestawy.hidden = zestawy.length > 0;
-  pustoZestawy.textContent = ubrania.length === 0
-    ? 'Najpierw dodaj ubrania w zakładce „Ubrania”.'
-    : 'Nie masz jeszcze zestawów. Stuknij „+ Nowy zestaw”.';
+  const widoczne = zestawy.filter(function (z) { return !tylkoUlubioneZestawy.checked || z.ulubiony; });
+
+  // Filtr "tylko ulubione" pokazujemy, gdy są jakieś zestawy
+  document.getElementById('filtr-zestawow').hidden = zestawy.length === 0;
+
+  // Komunikat, gdy nie ma czego pokazać
+  pustoZestawy.hidden = widoczne.length > 0;
+  if (ubrania.length === 0) pustoZestawy.textContent = 'Najpierw dodaj ubrania w zakładce „Ubrania”.';
+  else if (zestawy.length === 0) pustoZestawy.textContent = 'Nie masz jeszcze zestawów. Stuknij „+ Nowy zestaw”.';
+  else pustoZestawy.textContent = 'Nie masz jeszcze ulubionych zestawów.';
   przyciskNowyZestaw.disabled = ubrania.length === 0;
 
   // Najnowsze zestawy na górze: kopiujemy listę i odwracamy kolejność
-  zestawy.slice().reverse().forEach(function (zestaw) {
-    const karta = document.createElement('button');
-    karta.type = 'button';
+  widoczne.slice().reverse().forEach(function (zestaw) {
+    // Karta składa się z dwóch przycisków: duży (stuknięcie = edycja) i mały "Kolaż"
+    const karta = document.createElement('div');
     karta.className = 'karta-zestawu';
     if (zestaw.id === edytowanyZestawId) karta.classList.add('edytowany');
-    karta.addEventListener('click', function () { otworzFormularzZestawu(zestaw); });
+
+    const tresc = document.createElement('button');
+    tresc.type = 'button';
+    tresc.className = 'tresc-zestawu';
+    tresc.addEventListener('click', function () { otworzFormularzZestawu(zestaw); });
 
     const nazwa = document.createElement('strong');
-    nazwa.textContent = zestaw.nazwa;
+    nazwa.textContent = (zestaw.ulubiony ? '★ ' : '') + zestaw.nazwa;
 
     // Druga linijka: sezony i okazje, np. "Jesień, Zima · Praca"
     const opis = document.createElement('span');
@@ -208,10 +223,19 @@ function pokazZestawy() {
       const img = document.createElement('img');
       img.src = adresZdjecia(ubranie);
       img.alt = ubranie.podkategoria || ubranie.kategoria;
+      if (czyWyciete(ubranie)) img.className = 'wyciete';
       miniatury.append(img);
     });
 
-    karta.append(nazwa, opis, miniatury);
+    tresc.append(nazwa, opis, miniatury);
+
+    const przyciskKolazu = document.createElement('button');
+    przyciskKolazu.type = 'button';
+    przyciskKolazu.className = 'przycisk przycisk-jasny przycisk-maly';
+    przyciskKolazu.textContent = '🖼 Kolaż';
+    przyciskKolazu.addEventListener('click', function () { pokazKolaz(zestaw); }); // funkcja z kolaz.js
+
+    karta.append(tresc, przyciskKolazu);
     listaZestawow.append(karta);
   });
 }

@@ -181,6 +181,26 @@ h2 {
   cursor: pointer;
 }
 
+/* Wskazówka pod przyciskiem – z odstępem od kolejnego pola */
+.podpowiedz {
+  margin-bottom: 14px !important;
+}
+
+/* Mniejszy przycisk – np. "Wklej" albo "Kolaż" */
+.przycisk-maly {
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  margin-top: 8px;
+}
+
+/* Wycięte ubranie (bez tła): pokazujemy w całości, na jasnoszarym tle, z małym marginesem */
+img.wyciete {
+  object-fit: contain !important;
+  background: #ececec;
+  padding: 6%;
+  box-sizing: border-box;
+}
+
 /* Wyłączony przycisk (np. "Nowy zestaw", gdy nie ma jeszcze ubrań) – wyszarzony */
 .przycisk:disabled {
   opacity: 0.5;
@@ -292,17 +312,24 @@ h2 {
   gap: 12px;
 }
 
-/* Karta zestawu jest przyciskiem (stuknięcie = edycja) */
+/* Karta zestawu: część z opisem (przycisk – stuknięcie = edycja) i przycisk "Kolaż" pod spodem */
 .karta-zestawu {
-  display: block;
-  width: 100%;
   padding: 12px;
-  font: inherit;
-  color: inherit;
-  text-align: left;
   background: var(--karta);
   border: 1px solid var(--ramka);
   border-radius: 12px;
+}
+
+.tresc-zestawu {
+  display: block;
+  width: 100%;
+  padding: 0;
+  margin-bottom: 10px;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: none;
+  border: none;
   cursor: pointer;
 }
 
@@ -331,6 +358,30 @@ h2 {
   width: 64px;
   height: 64px;
   object-fit: cover;
+  border-radius: 8px;
+}
+
+/* ---------- OKNO KOLAŻU ---------- */
+
+.okno-kolazu {
+  width: min(92vw, 480px);
+  max-height: 92vh;
+  padding: 16px;
+  border: none;
+  border-radius: 16px;
+  box-sizing: border-box;
+}
+
+/* Przyciemnienie strony pod oknem */
+.okno-kolazu::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.okno-kolazu img {
+  display: block;
+  width: 100%;
+  max-height: 62vh;
+  object-fit: contain;
   border-radius: 8px;
 }
 
@@ -391,6 +442,26 @@ h2 {
   color: inherit;
   text-align: left;
   cursor: pointer;
+}
+
+/* Kafelek musi być "punktem odniesienia" dla gwiazdki, która leży w jego rogu */
+.kafelek {
+  position: relative;
+}
+
+/* Gwiazdka ulubionych w prawym górnym rogu kafelka */
+.gwiazdka {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 26px;
+  height: 26px;
+  line-height: 26px;
+  text-align: center;
+  border-radius: 50%;
+  background: white;
+  color: #f08c00;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
 }
 
 /* Kafelek edytowanego teraz ubrania – z zieloną ramką */

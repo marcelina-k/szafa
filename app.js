@@ -66,7 +66,9 @@ const licznik = document.getElementById('licznik');
 // ---------- ZMNIEJSZANIE ZDJĘCIA ----------
 
 // Funkcja = przepis, który można wielokrotnie wykonać.
-// Dostaje plik ze zdjęciem, zwraca mniejszą wersję (JPEG).
+// Dostaje plik ze zdjęciem, zwraca mniejszą wersję:
+//  - zwykłe zdjęcie -> JPEG (mały plik),
+//  - zdjęcie z przezroczystym tłem (ubranie wycięte w iPhonie) -> PNG, przycięte do samego ubrania.
 // "async" oznacza, że funkcja robi coś, co chwilę trwa (np. wczytanie obrazka), i trzeba na nią poczekać.
 async function zmniejszZdjecie(plik) {
   // 1. Wczytujemy zdjęcie jako obrazek
@@ -82,12 +84,61 @@ async function zmniejszZdjecie(plik) {
   const plotno = document.createElement('canvas');
   plotno.width = szerokosc;
   plotno.height = wysokosc;
-  plotno.getContext('2d').drawImage(obrazek, 0, 0, szerokosc, wysokosc);
+  const pedzel = plotno.getContext('2d');
+  pedzel.drawImage(obrazek, 0, 0, szerokosc, wysokosc);
 
-  // 4. Zapisujemy płótno jako plik JPEG (Blob = "kawałek danych", np. obrazek)
+  // 4. Sprawdzamy, czy zdjęcie ma przezroczyste tło
+  const ramka = granicePrzezroczystego(pedzel, szerokosc, wysokosc);
+
+  // 5a. Zwykłe zdjęcie – zapisujemy jako JPEG (Blob = "kawałek danych", np. obrazek)
+  if (!ramka) {
+    return new Promise(function (gotowe) {
+      plotno.toBlob(gotowe, 'image/jpeg', JAKOSC);
+    });
+  }
+
+  // 5b. Wycięte ubranie – przycinamy puste brzegi i zapisujemy jako PNG (ten format pamięta przezroczystość)
+  const przyciete = document.createElement('canvas');
+  przyciete.width = ramka.szerokosc;
+  przyciete.height = ramka.wysokosc;
+  przyciete.getContext('2d').drawImage(
+    plotno,
+    ramka.x, ramka.y, ramka.szerokosc, ramka.wysokosc, // jaki fragment wziąć
+    0, 0, ramka.szerokosc, ramka.wysokosc               // gdzie go narysować
+  );
   return new Promise(function (gotowe) {
-    plotno.toBlob(gotowe, 'image/jpeg', JAKOSC);
+    przyciete.toBlob(gotowe, 'image/png');
   });
+}
+
+// Sprawdza piksel po pikselu, czy obrazek ma przezroczyste tło.
+// Jeśli nie ma – zwraca null. Jeśli ma – zwraca prostokąt, w którym mieści się samo ubranie.
+function granicePrzezroczystego(pedzel, szerokosc, wysokosc) {
+  // getImageData daje listę liczb: dla każdego piksela 4 liczby – czerwony, zielony, niebieski, przezroczystość (0–255)
+  const piksele = pedzel.getImageData(0, 0, szerokosc, wysokosc).data;
+  let maPrzezroczyste = false;
+  let lewo = szerokosc, gora = wysokosc, prawo = -1, dol = -1;
+
+  for (let y = 0; y < wysokosc; y++) {
+    for (let x = 0; x < szerokosc; x++) {
+      const alfa = piksele[(y * szerokosc + x) * 4 + 3]; // 4. liczba piksela = przezroczystość
+      if (alfa < 250) maPrzezroczyste = true;
+      if (alfa > 10) { // piksel "widoczny" – należy do ubrania
+        if (x < lewo) lewo = x;
+        if (x > prawo) prawo = x;
+        if (y < gora) gora = y;
+        if (y > dol) dol = y;
+      }
+    }
+  }
+
+  if (!maPrzezroczyste || prawo < 0) return null;
+  return { x: lewo, y: gora, szerokosc: prawo - lewo + 1, wysokosc: dol - gora + 1 };
+}
+
+// Czy ubranie ma wycięte tło? (wycięte zapisujemy jako PNG, zwykłe jako JPEG)
+function czyWyciete(ubranie) {
+  return ubranie.zdjecie.type === 'image/png';
 }
 
 // Zamienia liczbę bajtów na czytelny tekst, np. 3 450 000 -> "3.3 MB"
@@ -109,17 +160,42 @@ function odmien(liczba, jeden, kilka, wiele) {
 function ileUbran(liczba) { return odmien(liczba, 'ubranie', 'ubrania', 'ubrań'); }
 function ileZestawow(liczba) { return odmien(liczba, 'zestaw', 'zestawy', 'zestawów'); }
 
+// Zmniejsza zdjęcie (z pliku albo ze schowka) i pokazuje podgląd
+async function przyjmijZdjecie(plik) {
+  zmniejszoneZdjecie = await zmniejszZdjecie(plik);
+
+  podglad.src = URL.createObjectURL(zmniejszoneZdjecie);
+  podglad.classList.toggle('wyciete', zmniejszoneZdjecie.type === 'image/png');
+  podglad.hidden = false;
+  infoZdjecie.textContent =
+    (zmniejszoneZdjecie.type === 'image/png' ? 'Ubranie bez tła ✓ ' : 'Zdjęcie zmniejszone: ') +
+    rozmiarTekstem(plik.size) + ' → ' + rozmiarTekstem(zmniejszoneZdjecie.size);
+}
+
 // Gdy wybierzesz zdjęcie (zdarzenie "change") – od razu je zmniejszamy i pokazujemy podgląd
 poleZdjecia.addEventListener('change', async function () {
   const plik = poleZdjecia.files[0];
   if (!plik) return; // nic nie wybrano
+  await przyjmijZdjecie(plik);
+});
 
-  zmniejszoneZdjecie = await zmniejszZdjecie(plik);
-
-  podglad.src = URL.createObjectURL(zmniejszoneZdjecie);
-  podglad.hidden = false;
-  infoZdjecie.textContent =
-    'Zdjęcie zmniejszone: ' + rozmiarTekstem(plik.size) + ' → ' + rozmiarTekstem(zmniejszoneZdjecie.size);
+// "Wklej skopiowane zdjęcie" – bierzemy obrazek ze schowka (np. ubranie skopiowane w aplikacji Zdjęcia)
+document.getElementById('wklej-zdjecie').addEventListener('click', async function () {
+  try {
+    // clipboard.read() prosi telefon o zawartość schowka. iPhone pokaże dymek "Wklej" – trzeba go stuknąć.
+    const zawartosc = await navigator.clipboard.read();
+    for (const element of zawartosc) {
+      const typObrazka = element.types.find(function (typ) { return typ.startsWith('image/'); });
+      if (typObrazka) {
+        await przyjmijZdjecie(await element.getType(typObrazka));
+        poleZdjecia.required = false; // mamy zdjęcie ze schowka, więc pole pliku może zostać puste
+        return;
+      }
+    }
+    infoZdjecie.textContent = 'W schowku nie ma zdjęcia. Skopiuj ubranie w aplikacji Zdjęcia i spróbuj jeszcze raz.';
+  } catch (blad) {
+    infoZdjecie.textContent = 'Nie udało się wkleić. Skopiuj zdjęcie jeszcze raz albo wybierz je przyciskiem powyżej.';
+  }
 });
 
 // ---------- LISTY ROZWIJANE ----------
@@ -166,6 +242,9 @@ formularz.addEventListener('submit', async function (zdarzenie) {
   // Przy edycji szukamy starej wersji ubrania (find = "znajdź pierwszy pasujący element")
   const stare = ubrania.find(function (u) { return u.id === edytowaneId; });
 
+  // Nowe ubranie musi mieć zdjęcie
+  if (!stare && !zmniejszoneZdjecie) return;
+
   // Tworzymy "obiekt" – paczkę informacji o jednym ubraniu
   const ubranie = {
     // Przy edycji zostawiamy stary numer – dzięki temu baza nadpisze stare ubranie, a nie doda nowego.
@@ -179,6 +258,7 @@ formularz.addEventListener('submit', async function (zdarzenie) {
     sezony: zaznaczone('sezony'),
     okazje: zaznaczone('okazje'),
     notatka: document.getElementById('notatka').value.trim(), // trim() obcina spacje na początku i końcu
+    ulubione: document.getElementById('ulubione').checked,     // true albo false
   };
 
   await zapiszUbranie(ubranie); // zapisujemy na stałe w bazie (funkcja z baza.js)
@@ -221,6 +301,7 @@ function rozpocznijEdycje(ubranie) {
   // Zdjęcie przy edycji nie jest wymagane – jeśli nie wybierzesz nowego, zostaje stare
   poleZdjecia.required = false;
   podglad.src = adresZdjecia(ubranie);
+  podglad.classList.toggle('wyciete', czyWyciete(ubranie));
   podglad.hidden = false;
   infoZdjecie.textContent = 'Wybierz nowe zdjęcie tylko, jeśli chcesz je zmienić.';
 
@@ -232,6 +313,7 @@ function rozpocznijEdycje(ubranie) {
   zaznaczPigulki('sezony', ubranie.sezony);
   zaznaczPigulki('okazje', ubranie.okazje);
   document.getElementById('notatka').value = ubranie.notatka;
+  document.getElementById('ulubione').checked = ubranie.ulubione;
 
   pokazUbrania(); // żeby zaznaczyć edytowany kafelek zieloną ramką
   formularz.scrollIntoView({ behavior: 'smooth' }); // przewijamy do formularza
@@ -318,8 +400,10 @@ function pasujeDoFiltrow(ubranie) {
   const kolor = filtrKolor.value;
   const sezony = zaznaczone('filtr-sezony');
   const okazje = zaznaczone('filtr-okazje');
+  const tylkoUlubione = document.getElementById('filtr-ulubione').checked;
 
   // Każdy warunek, który NIE jest spełniony, od razu odrzuca ubranie ("return false")
+  if (tylkoUlubione && !ubranie.ulubione) return false;
   if (kategoria && ubranie.kategoria !== kategoria) return false;
   if (podkategoria && ubranie.podkategoria !== podkategoria) return false;
   if (kolor && ubranie.kolor !== kolor) return false;
@@ -368,6 +452,16 @@ function pokazUbrania() {
 
     const img = document.createElement('img');
     img.src = adresZdjecia(ubranie);
+    if (czyWyciete(ubranie)) img.className = 'wyciete';
+
+    // Gwiazdka w rogu kafelka dla ulubionych
+    if (ubranie.ulubione) {
+      const gwiazdka = document.createElement('span');
+      gwiazdka.className = 'gwiazdka';
+      gwiazdka.textContent = '★';
+      kafelek.append(gwiazdka);
+    }
+
     // Nazwa ubrania: rodzaj (np. "Sweter"), a gdy go brak – kategoria
     const nazwa = ubranie.podkategoria || ubranie.kategoria;
     img.alt = nazwa + ', ' + ubranie.kolor;
@@ -409,6 +503,7 @@ function uaktualnijUbranie(ubranie) {
   }
   if (ubranie.podkategoria === undefined) { ubranie.podkategoria = ''; zmienione = true; }
   if (ubranie.notatka === undefined) { ubranie.notatka = ''; zmienione = true; }
+  if (ubranie.ulubione === undefined) { ubranie.ulubione = false; zmienione = true; }
   return zmienione;
 }
 

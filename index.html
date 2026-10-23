@@ -11,7 +11,7 @@
   <!-- Podłączamy plik z wyglądem (CSS).
        "?v=6" to numer wersji. Przeglądarka zapamiętuje pliki; gdy zmienimy numer, uzna plik za nowy
        i pobierze go na pewno. Podnosimy go (tu i przy skryptach na dole) przy każdym kroku. -->
-  <link rel="stylesheet" href="style.css?v=7">
+  <link rel="stylesheet" href="style.css?v=8">
 
   <!-- PWA: dzięki tym linijkom stronę można zainstalować na telefonie jak aplikację -->
   <!-- Manifest = "wizytówka" aplikacji: nazwa, ikona, kolory -->
@@ -52,6 +52,9 @@
         Zdjęcie
         <input type="file" id="zdjecie" accept="image/*" required>
       </label>
+      <!-- Drugi sposób: wklejenie ubrania skopiowanego (np. wyciętego z tła w aplikacji Zdjęcia) -->
+      <button type="button" id="wklej-zdjecie" class="przycisk przycisk-jasny przycisk-maly">📋 Wklej skopiowane zdjęcie</button>
+      <p class="maly-tekst podpowiedz">Ubranie bez tła: w aplikacji Zdjęcia przytrzymaj palec na ubraniu → Kopiuj, a potem stuknij „Wklej”.</p>
       <!-- Tu pokażemy podgląd zmniejszonego zdjęcia -->
       <img id="podglad" class="podglad" alt="" hidden>
       <p id="info-zdjecie" class="maly-tekst"></p>
@@ -119,6 +122,11 @@
         <input type="text" id="notatka" maxlength="100" placeholder="np. w paski, w kratkę, z kokardą">
       </label>
 
+      <!-- Pojedyncza pigułka "Ulubione" -->
+      <div class="opcje pole">
+        <label><input type="checkbox" id="ulubione"> ⭐ Ulubione</label>
+      </div>
+
       <button type="submit" id="przycisk-zapisz" class="przycisk">Dodaj do szafy</button>
 
       <!-- Przyciski widoczne tylko podczas edycji -->
@@ -156,6 +164,9 @@
         <legend>Okazja</legend>
         <div class="opcje" id="filtr-okazje"></div>
       </fieldset>
+      <div class="opcje pole">
+        <label><input type="checkbox" id="filtr-ulubione"> ⭐ Tylko ulubione</label>
+      </div>
       <button type="button" id="wyczysc-filtry" class="przycisk przycisk-jasny">Wyczyść filtry</button>
     </section>
 
@@ -215,6 +226,10 @@
         </div>
         <p id="blad-zestawu" class="blad" hidden>Zaznacz przynajmniej jedno ubranie.</p>
 
+        <div class="opcje pole">
+          <label><input type="checkbox" id="zestaw-ulubiony"> ⭐ Ulubiony</label>
+        </div>
+
         <button type="submit" id="zapisz-zestaw" class="przycisk">Zapisz zestaw</button>
         <div class="przyciski">
           <button type="button" id="anuluj-zestaw" class="przycisk przycisk-jasny">Anuluj</button>
@@ -223,6 +238,9 @@
       </form>
 
       <h2 class="naglowek-listy">Moje zestawy</h2>
+      <div id="filtr-zestawow" class="opcje pole">
+        <label><input type="checkbox" id="zestawy-tylko-ulubione"> ⭐ Tylko ulubione</label>
+      </div>
       <p id="pusto-zestawy" class="pusto"></p>
       <!-- Ten pojemnik wypełni JavaScript kartami zestawów -->
       <div id="lista-zestawow" class="lista-zestawow"></div>
@@ -230,10 +248,22 @@
 
   </main>
 
+  <!-- OKNO Z KOLAŻEM. <dialog> to okienko, które wyświetla się nad resztą strony -->
+  <dialog id="okno-kolazu" class="okno-kolazu">
+    <h2 id="kolaz-tytul"></h2>
+    <img id="kolaz-obraz" alt="Kolaż zestawu">
+    <p id="kolaz-info" class="maly-tekst"></p>
+    <div class="przyciski">
+      <button type="button" id="kolaz-zamknij" class="przycisk przycisk-jasny">Zamknij</button>
+      <button type="button" id="kolaz-udostepnij" class="przycisk">Zapisz / wyślij</button>
+    </div>
+  </dialog>
+
   <!-- Podłączamy pliki z zachowaniem strony (JavaScript). Na końcu, żeby elementy powyżej już istniały.
        Najpierw baza.js (zapis danych), potem app.js (ubrania), potem zestawy.js, który korzysta z obu -->
-  <script src="baza.js?v=7"></script>
-  <script src="app.js?v=7"></script>
-  <script src="zestawy.js?v=7"></script>
+  <script src="baza.js?v=8"></script>
+  <script src="app.js?v=8"></script>
+  <script src="zestawy.js?v=8"></script>
+  <script src="kolaz.js?v=8"></script>
 </body>
 </html>
