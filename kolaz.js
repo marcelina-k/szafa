@@ -11,27 +11,30 @@ const TLO_KOLAZU = '#ececec';
 // Miejsca na kolażu dla każdej "roli" ubrania.
 // Liczby to ułamki szerokości/wysokości grafiki: x: 0.08 = 8% od lewej, w: 0.60 = 60% szerokości itd.
 const MIEJSCA = {
-  gora:      { x: 0.08, y: 0.03, w: 0.60, h: 0.36 }, // u góry, na środku
-  sukienka:  { x: 0.18, y: 0.04, w: 0.56, h: 0.80 }, // duża, przez środek
-  dol:       { x: 0.30, y: 0.33, w: 0.48, h: 0.63 }, // pod górą, lekko na nią zachodzi
-  okrycie:   { x: 0.52, y: 0.10, w: 0.45, h: 0.45 }, // obok góry, po prawej
-  torba:     { x: 0.02, y: 0.45, w: 0.36, h: 0.26 }, // po lewej, na wysokości bioder
-  buty:      { x: 0.02, y: 0.76, w: 0.38, h: 0.22 }, // lewy dolny róg
-  czapka:    { x: 0.68, y: 0.02, w: 0.30, h: 0.17 }, // prawy górny róg
-  bizuteria: { x: 0.76, y: 0.22, w: 0.16, h: 0.10 }, // mała, po prawej
+  gora:       { x: 0.08, y: 0.03, w: 0.60, h: 0.36 }, // jedna góra – u góry, na środku
+  // Gdy w zestawie są dwie góry (np. koszulka i sweter) – leżą na sobie, lekko przesunięte
+  goraSpod:   { x: 0.04, y: 0.04, w: 0.52, h: 0.34 }, // koszulka – pod spodem, bardziej w lewo
+  goraWierzch:{ x: 0.24, y: 0.07, w: 0.54, h: 0.36 }, // sweter/bluza – na niej, bardziej w prawo
+  sukienka:   { x: 0.18, y: 0.04, w: 0.56, h: 0.80 }, // duża, przez środek
+  dol:        { x: 0.30, y: 0.33, w: 0.48, h: 0.63 }, // pod górą, góra lekko na niego zachodzi
+  okrycie:    { x: 0.46, y: 0.14, w: 0.52, h: 0.47 }, // na wierzchu, po prawej
+  torba:      { x: 0.02, y: 0.47, w: 0.36, h: 0.25 }, // po lewej, na wysokości bioder
+  buty:       { x: 0.02, y: 0.76, w: 0.38, h: 0.22 }, // lewy dolny róg
+  czapka:     { x: 0.70, y: 0.01, w: 0.28, h: 0.13 }, // prawy górny róg
+  bizuteria:  { x: 0.03, y: 0.38, w: 0.15, h: 0.08 }, // mała, po lewej
 };
 
-// Dodatkowe miejsca – dla dodatków (szalik, pasek...) i drugiego ubrania z tej samej roli
+// Dodatkowe miejsca – dla dodatków (szalik, pasek...) i kolejnych ubrań z tej samej roli
 const WOLNE_MIEJSCA = [
-  { x: 0.70, y: 0.56, w: 0.28, h: 0.20 },
-  { x: 0.02, y: 0.24, w: 0.26, h: 0.20 },
-  { x: 0.70, y: 0.78, w: 0.28, h: 0.20 },
+  { x: 0.70, y: 0.62, w: 0.28, h: 0.18 },
+  { x: 0.70, y: 0.80, w: 0.28, h: 0.18 },
   { x: 0.40, y: 0.82, w: 0.24, h: 0.16 },
+  { x: 0.02, y: 0.22, w: 0.20, h: 0.14 },
 ];
 
-// Kolejność rysowania: to, co narysowane później, leży "na wierzchu".
-// Dół rysujemy przed górą, żeby sweter zachodził na spodnie – jak na prawdziwym kolażu.
-const KOLEJNOSC_RYSOWANIA = ['okrycie', 'dol', 'sukienka', 'gora', 'torba', 'buty', 'dodatek', 'czapka', 'bizuteria'];
+// Kolejność rysowania = kolejność ubierania się. To, co narysowane później, leży "na wierzchu":
+// koszulka -> spodnie/spódnica (koszulka jakby włożona do środka) -> sukienka -> sweter/bluza -> okrycie -> dodatki
+const KOLEJNOSC_RYSOWANIA = ['goraCiepla', 'dol', 'sukienka', 'goraZimna', 'okrycie', 'torba', 'buty', 'dodatek', 'czapka', 'bizuteria'];
 
 // ---------- ROZMIESZCZENIE ----------
 
@@ -39,8 +42,8 @@ const KOLEJNOSC_RYSOWANIA = ['okrycie', 'dol', 'sukienka', 'gora', 'torba', 'but
 function rolaUbrania(ubranie) {
   const rodzaj = ubranie.podkategoria;
   switch (ubranie.kategoria) {
-    case 'Góra ciepła':
-    case 'Góra zimna': return 'gora';
+    case 'Góra ciepła': return 'goraCiepla';
+    case 'Góra zimna': return 'goraZimna';
     case 'Dół spodnie':
     case 'Dół spódnica': return 'dol';
     case 'Sukienka / kombinezon': return 'sukienka';
@@ -66,15 +69,27 @@ function rozmiescUbrania(listaUbran) {
     .map(function (ubranie, i) { return { ubranie: ubranie, rola: role[i] }; })
     .sort(function (a, b) { return KOLEJNOSC_RYSOWANIA.indexOf(a.rola) - KOLEJNOSC_RYSOWANIA.indexOf(b.rola); });
 
-  posortowane.forEach(function (element) {
-    let rola = element.rola;
+  // Ile jest gór? Od tego zależy, czy leżą warstwowo (dwie), czy jedna na środku
+  const saObieGory = role.includes('goraCiepla') && role.includes('goraZimna');
+  const jestGoraLubSukienka = role.some(function (r) { return r === 'goraCiepla' || r === 'goraZimna' || r === 'sukienka'; });
+
+  // Która rola dostaje które miejsce z MIEJSCA
+  function miejsceDlaRoli(rola) {
+    if (rola === 'goraCiepla') return saObieGory ? 'goraSpod' : 'gora';
+    if (rola === 'goraZimna') return saObieGory ? 'goraWierzch' : 'gora';
     // Płaszcz bez góry i sukienki zajmuje miejsce góry (żeby nie wisiał samotnie z boku)
-    if (rola === 'okrycie' && !role.includes('gora') && !role.includes('sukienka')) rola = 'gora';
+    if (rola === 'okrycie' && !jestGoraLubSukienka) return 'gora';
+    if (rola === 'dodatek') return null; // dodatki idą na wolne miejsca
+    return rola;
+  }
+
+  posortowane.forEach(function (element) {
+    const nazwaMiejsca = miejsceDlaRoli(element.rola);
 
     let miejsce = null;
-    if (rola !== 'dodatek' && !zajete[rola]) {
-      miejsce = MIEJSCA[rola];
-      zajete[rola] = true;
+    if (nazwaMiejsca && !zajete[nazwaMiejsca]) {
+      miejsce = MIEJSCA[nazwaMiejsca];
+      zajete[nazwaMiejsca] = true;
     } else if (wolne.length) {
       miejsce = wolne.shift(); // shift() = weź pierwszy element listy i usuń go z niej
     }
@@ -108,7 +123,9 @@ async function stworzKolaz(zestaw) {
   pedzel.fillStyle = TLO_KOLAZU;
   pedzel.fillRect(0, 0, SZEROKOSC_KOLAZU, WYSOKOSC_KOLAZU);
 
-  const listaUbran = ubraniaZestawu(zestaw); // funkcja z zestawy.js
+  // Ubrania zestawu (funkcja z zestawy.js) – tylko te ze zdjęciem
+  const wszystkie = ubraniaZestawu(zestaw);
+  const listaUbran = wszystkie.filter(maZdjecie);
   const rozmieszczone = rozmiescUbrania(listaUbran);
   let zTlem = 0;
 
@@ -153,7 +170,12 @@ async function stworzKolaz(zestaw) {
   const blob = await new Promise(function (gotowe) { plotno.toBlob(gotowe, 'image/jpeg', 0.92); });
   const plik = new File([blob], nazwaPliku(zestaw.nazwa), { type: 'image/jpeg' });
 
-  return { plik: plik, pominiete: listaUbran.length - rozmieszczone.length, zTlem: zTlem };
+  return {
+    plik: plik,
+    pominiete: listaUbran.length - rozmieszczone.length,
+    bezZdjecia: wszystkie.length - listaUbran.length,
+    zTlem: zTlem,
+  };
 }
 
 // "Biuro – piątek" -> "zestaw-biuro-piatek.jpg" (bez polskich znaków i spacji, żeby nazwa działała wszędzie)
@@ -166,27 +188,87 @@ function nazwaPliku(nazwa) {
   return 'zestaw-' + (prosta || 'kolaz') + '.jpg';
 }
 
-// ---------- OKNO KOLAŻU ----------
+// ---------- PAMIĘĆ GOTOWYCH KOLAŻY ----------
+
+// Ułożenie kolażu chwilę trwa, więc gotowe kolaże zapamiętujemy: id zestawu -> { klucz, adres, wynik }.
+// "Klucz" opisuje, z czego kolaż powstał (zdjęcia i kategorie ubrań). Gdy zmienisz zestaw albo
+// zdjęcie ubrania, klucz będzie inny – wtedy układamy kolaż od nowa.
+const gotoweKolaze = new Map();
+
+function kluczKolazu(zestaw) {
+  return ubraniaZestawu(zestaw)
+    .map(function (u) { return adresZdjecia(u) + u.kategoria + u.podkategoria; })
+    .join('|');
+}
+
+// Zwraca kolaż zestawu – z pamięci albo nowo ułożony
+async function kolazZestawu(zestaw) {
+  const klucz = kluczKolazu(zestaw);
+  const zapamietany = gotoweKolaze.get(zestaw.id);
+  if (zapamietany && zapamietany.klucz === klucz) return zapamietany;
+
+  const wynik = await stworzKolaz(zestaw);
+  if (zapamietany) URL.revokeObjectURL(zapamietany.adres); // stary kolaż już niepotrzebny
+  const kolaz = { klucz: klucz, adres: URL.createObjectURL(wynik.plik), wynik: wynik };
+  gotoweKolaze.set(zestaw.id, kolaz);
+  return kolaz;
+}
+
+// ---------- SZCZEGÓŁY ZESTAWU ----------
 
 const oknoKolazu = document.getElementById('okno-kolazu');
 const obrazKolazu = document.getElementById('kolaz-obraz');
 const infoKolazu = document.getElementById('kolaz-info');
-let plikKolazu = null;
+const listaWZestawie = document.getElementById('kolaz-ubrania');
+let zestawWOknie = null;
 
-async function pokazKolaz(zestaw) {
-  document.getElementById('kolaz-tytul').textContent = zestaw.nazwa;
+// Otwiera okno ze szczegółami: duży kolaż, opis, lista ubrań i przyciski
+async function pokazSzczegolyZestawu(zestaw) {
+  zestawWOknie = zestaw;
+  document.getElementById('kolaz-tytul').textContent = (zestaw.ulubiony ? '★ ' : '') + zestaw.nazwa;
+  document.getElementById('kolaz-opis').textContent = opisZestawu(zestaw); // funkcja z zestawy.js
+
+  // Lista ubrań: miniaturka + nazwa. Stuknięcie przenosi do edycji tego ubrania.
+  listaWZestawie.innerHTML = '';
+  ubraniaZestawu(zestaw).forEach(function (ubranie) {
+    const wiersz = document.createElement('button');
+    wiersz.type = 'button';
+    wiersz.className = 'wiersz-ubrania';
+
+    const img = document.createElement('img');
+    img.src = adresZdjecia(ubranie);
+    img.alt = '';
+    if (czyWyciete(ubranie)) img.className = 'wyciete';
+
+    const tekst = document.createElement('span');
+    tekst.textContent = (ubranie.podkategoria || ubranie.kategoria) + ' · ' + ubranie.kolor.toLowerCase();
+
+    wiersz.append(img, tekst);
+    wiersz.addEventListener('click', function () {
+      oknoKolazu.close();
+      pokazWidok('widok-ubrania');  // funkcje z app.js
+      rozpocznijEdycje(ubranie);
+    });
+    listaWZestawie.append(wiersz);
+  });
+
   infoKolazu.textContent = 'Układam kolaż…';
   obrazKolazu.removeAttribute('src');
   oknoKolazu.showModal(); // pokazuje okno nad stroną
+  oknoKolazu.scrollTop = 0;
 
-  const wynik = await stworzKolaz(zestaw);
-  plikKolazu = wynik.plik;
-  obrazKolazu.src = URL.createObjectURL(plikKolazu);
+  const kolaz = await kolazZestawu(zestaw);
+  if (zestawWOknie !== zestaw) return; // w międzyczasie otwarto inny zestaw
+  obrazKolazu.src = kolaz.adres;
 
   // Podpowiedzi pod kolażem
+  const wynik = kolaz.wynik;
   const uwagi = [];
   if (wynik.zTlem) {
     uwagi.push('Wskazówka: ' + ileUbran(wynik.zTlem) + ' z tłem. Wytnij je w aplikacji Zdjęcia, a kolaż będzie ładniejszy.');
+  }
+  if (wynik.bezZdjecia) {
+    uwagi.push('Bez zdjęcia (pominięte): ' + ileUbran(wynik.bezZdjecia) + '.');
   }
   if (wynik.pominiete) {
     uwagi.push('Nie zmieściło się: ' + ileUbran(wynik.pominiete) + '.');
@@ -196,11 +278,16 @@ async function pokazKolaz(zestaw) {
 
 document.getElementById('kolaz-zamknij').addEventListener('click', function () {
   oknoKolazu.close();
-  if (obrazKolazu.src) URL.revokeObjectURL(obrazKolazu.src);
+});
+
+document.getElementById('kolaz-edytuj').addEventListener('click', function () {
+  oknoKolazu.close();
+  otworzFormularzZestawu(zestawWOknie); // funkcja z zestawy.js
 });
 
 document.getElementById('kolaz-udostepnij').addEventListener('click', async function () {
-  if (!plikKolazu) return;
+  if (!zestawWOknie) return;
+  const plikKolazu = (await kolazZestawu(zestawWOknie)).wynik.plik;
 
   // Na telefonie: systemowe menu "Udostępnij" (stamtąd można zapisać do Zdjęć albo wysłać)
   if (navigator.canShare && navigator.canShare({ files: [plikKolazu] })) {

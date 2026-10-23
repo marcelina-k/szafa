@@ -196,48 +196,37 @@ function pokazZestawy() {
 
   // Najnowsze zestawy na górze: kopiujemy listę i odwracamy kolejność
   widoczne.slice().reverse().forEach(function (zestaw) {
-    // Karta składa się z dwóch przycisków: duży (stuknięcie = edycja) i mały "Kolaż"
-    const karta = document.createElement('div');
+    // Karta = przycisk z kolażem, nazwą i opisem. Stuknięcie otwiera szczegóły zestawu.
+    const karta = document.createElement('button');
+    karta.type = 'button';
     karta.className = 'karta-zestawu';
     if (zestaw.id === edytowanyZestawId) karta.classList.add('edytowany');
+    karta.addEventListener('click', function () { pokazSzczegolyZestawu(zestaw); }); // funkcja z kolaz.js
 
-    const tresc = document.createElement('button');
-    tresc.type = 'button';
-    tresc.className = 'tresc-zestawu';
-    tresc.addEventListener('click', function () { otworzFormularzZestawu(zestaw); });
+    // Kolaż jako główne zdjęcie. Układanie chwilę trwa, więc najpierw jest szare pole,
+    // a gdy kolaż będzie gotowy (.then), wstawiamy go w to miejsce.
+    const obraz = document.createElement('img');
+    obraz.className = 'kolaz-miniatura';
+    obraz.alt = 'Kolaż: ' + zestaw.nazwa;
+    kolazZestawu(zestaw).then(function (kolaz) { obraz.src = kolaz.adres; }); // funkcja z kolaz.js
 
     const nazwa = document.createElement('strong');
     nazwa.textContent = (zestaw.ulubiony ? '★ ' : '') + zestaw.nazwa;
 
-    // Druga linijka: sezony i okazje, np. "Jesień, Zima · Praca"
     const opis = document.createElement('span');
     opis.className = 'maly-tekst';
-    opis.textContent = [zestaw.sezony.join(', '), zestaw.okazje.join(', ')]
-      .filter(Boolean)
-      .join(' · ') || 'każdy sezon i okazja';
+    opis.textContent = opisZestawu(zestaw);
 
-    // Miniaturki ubrań
-    const miniatury = document.createElement('span');
-    miniatury.className = 'miniatury';
-    ubraniaZestawu(zestaw).forEach(function (ubranie) {
-      const img = document.createElement('img');
-      img.src = adresZdjecia(ubranie);
-      img.alt = ubranie.podkategoria || ubranie.kategoria;
-      if (czyWyciete(ubranie)) img.className = 'wyciete';
-      miniatury.append(img);
-    });
-
-    tresc.append(nazwa, opis, miniatury);
-
-    const przyciskKolazu = document.createElement('button');
-    przyciskKolazu.type = 'button';
-    przyciskKolazu.className = 'przycisk przycisk-jasny przycisk-maly';
-    przyciskKolazu.textContent = '🖼 Kolaż';
-    przyciskKolazu.addEventListener('click', function () { pokazKolaz(zestaw); }); // funkcja z kolaz.js
-
-    karta.append(tresc, przyciskKolazu);
+    karta.append(obraz, nazwa, opis);
     listaZestawow.append(karta);
   });
+}
+
+// Sezony i okazje zestawu jednym tekstem, np. "Jesień, Zima · Praca"
+function opisZestawu(zestaw) {
+  return [zestaw.sezony.join(', '), zestaw.okazje.join(', ')]
+    .filter(Boolean)
+    .join(' · ') || 'każdy sezon i okazja';
 }
 
 // ---------- START ----------

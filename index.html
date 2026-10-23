@@ -11,7 +11,7 @@
   <!-- Podłączamy plik z wyglądem (CSS).
        "?v=6" to numer wersji. Przeglądarka zapamiętuje pliki; gdy zmienimy numer, uzna plik za nowy
        i pobierze go na pewno. Podnosimy go (tu i przy skryptach na dole) przy każdym kroku. -->
-  <link rel="stylesheet" href="style.css?v=8">
+  <link rel="stylesheet" href="style.css?v=9">
 
   <!-- PWA: dzięki tym linijkom stronę można zainstalować na telefonie jak aplikację -->
   <!-- Manifest = "wizytówka" aplikacji: nazwa, ikona, kolory -->
@@ -172,6 +172,8 @@
 
     <!-- Licznik, np. "Pokazuję 3 z 12 ubrań" -->
     <p id="licznik" class="maly-tekst licznik"></p>
+    <!-- Ostrzeżenie, gdy jakieś ubrania straciły zdjęcie -->
+    <p id="ostrzezenie-zdjecia" class="blad" hidden></p>
     <p id="pusto" class="pusto">Twoja szafa jest jeszcze pusta.</p>
     <!-- Ten pojemnik wypełni JavaScript kafelkami z ubraniami -->
     <div id="lista" class="siatka"></div>
@@ -248,22 +250,29 @@
 
   </main>
 
-  <!-- OKNO Z KOLAŻEM. <dialog> to okienko, które wyświetla się nad resztą strony -->
+  <!-- OKNO ZE SZCZEGÓŁAMI ZESTAWU. <dialog> to okienko, które wyświetla się nad resztą strony -->
   <dialog id="okno-kolazu" class="okno-kolazu">
     <h2 id="kolaz-tytul"></h2>
+    <p id="kolaz-opis" class="maly-tekst"></p>
     <img id="kolaz-obraz" alt="Kolaż zestawu">
     <p id="kolaz-info" class="maly-tekst"></p>
+    <button type="button" id="kolaz-udostepnij" class="przycisk">Zapisz / wyślij kolaż</button>
+
+    <h3>Ubrania w zestawie</h3>
+    <!-- Lista ubrań – wypełni ją JavaScript -->
+    <div id="kolaz-ubrania" class="lista-w-zestawie"></div>
+
     <div class="przyciski">
       <button type="button" id="kolaz-zamknij" class="przycisk przycisk-jasny">Zamknij</button>
-      <button type="button" id="kolaz-udostepnij" class="przycisk">Zapisz / wyślij</button>
+      <button type="button" id="kolaz-edytuj" class="przycisk przycisk-jasny">Edytuj zestaw</button>
     </div>
   </dialog>
 
   <!-- Podłączamy pliki z zachowaniem strony (JavaScript). Na końcu, żeby elementy powyżej już istniały.
        Najpierw baza.js (zapis danych), potem app.js (ubrania), potem zestawy.js, który korzysta z obu -->
-  <script src="baza.js?v=8"></script>
-  <script src="app.js?v=8"></script>
-  <script src="zestawy.js?v=8"></script>
-  <script src="kolaz.js?v=8"></script>
+  <script src="baza.js?v=9"></script>
+  <script src="app.js?v=9"></script>
+  <script src="zestawy.js?v=9"></script>
+  <script src="kolaz.js?v=9"></script>
 </body>
 </html>

@@ -138,7 +138,12 @@ function granicePrzezroczystego(pedzel, szerokosc, wysokosc) {
 
 // Czy ubranie ma wycięte tło? (wycięte zapisujemy jako PNG, zwykłe jako JPEG)
 function czyWyciete(ubranie) {
-  return ubranie.zdjecie.type === 'image/png';
+  return maZdjecie(ubranie) && ubranie.zdjecie.type === 'image/png';
+}
+
+// Czy ubranie ma działające zdjęcie? (false, gdy zdjęcie się zgubiło – patrz baza.js)
+function maZdjecie(ubranie) {
+  return Boolean(ubranie.zdjecie) && !ubranie.zdjecieUszkodzone;
 }
 
 // Zamienia liczbę bajtów na czytelny tekst, np. 3 450 000 -> "3.3 MB"
@@ -252,6 +257,8 @@ formularz.addEventListener('submit', async function (zdarzenie) {
     id: stare ? stare.id : Date.now(),
     // Nowe zdjęcie, a jeśli przy edycji go nie wybrano – stare
     zdjecie: zmniejszoneZdjecie || stare.zdjecie,
+    // Jeśli stare zdjęcie było uszkodzone i nie wybrano nowego – nadal jest uszkodzone
+    zdjecieUszkodzone: !zmniejszoneZdjecie && Boolean(stare && stare.zdjecieUszkodzone),
     kategoria: poleKategorii.value,
     podkategoria: polePodkategorii.value,
     kolor: document.getElementById('kolor').value,
@@ -303,7 +310,9 @@ function rozpocznijEdycje(ubranie) {
   podglad.src = adresZdjecia(ubranie);
   podglad.classList.toggle('wyciete', czyWyciete(ubranie));
   podglad.hidden = false;
-  infoZdjecie.textContent = 'Wybierz nowe zdjęcie tylko, jeśli chcesz je zmienić.';
+  infoZdjecie.textContent = maZdjecie(ubranie)
+    ? 'Wybierz nowe zdjęcie tylko, jeśli chcesz je zmienić.'
+    : 'To ubranie straciło zdjęcie – wybierz albo wklej je ponownie.';
 
   // Wpisujemy dane ubrania do pól formularza
   poleKategorii.value = ubranie.kategoria;
@@ -378,7 +387,19 @@ document.getElementById('usun-ubranie').addEventListener('click', async function
 // kliknięciu w filtr nie tworzyć nowych – inaczej telefon zapychałby sobie pamięć.
 const adresyZdjec = new Map();
 
+// Obrazek zastępczy dla ubrań, które straciły zdjęcie – szary kwadrat z napisem.
+// To grafika SVG zapisana jako tekst (data:...), więc nie potrzebuje osobnego pliku.
+const BRAK_ZDJECIA = 'data:image/svg+xml,' + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">' +
+  '<rect width="200" height="200" fill="#f1f3f5"/>' +
+  '<text x="100" y="92" font-size="40" text-anchor="middle">📷</text>' +
+  '<text x="100" y="130" font-size="15" fill="#868e96" text-anchor="middle" font-family="sans-serif">brak zdjęcia</text>' +
+  '<text x="100" y="150" font-size="15" fill="#868e96" text-anchor="middle" font-family="sans-serif">dodaj ponownie</text>' +
+  '</svg>'
+);
+
 function adresZdjecia(ubranie) {
+  if (!maZdjecie(ubranie)) return BRAK_ZDJECIA;
   if (!adresyZdjec.has(ubranie.id)) {
     adresyZdjec.set(ubranie.id, URL.createObjectURL(ubranie.zdjecie));
   }
@@ -434,6 +455,13 @@ function pokazUbrania() {
     ? 'Wszystkie: ' + ileUbran(ubrania.length)
     : 'Pokazuję ' + widoczne.length + ' z ' + ileUbran(ubrania.length)) +
     ' · stuknij ubranie, aby je edytować';
+
+  // Ostrzeżenie o ubraniach bez zdjęcia
+  const bezZdjecia = ubrania.filter(function (u) { return !maZdjecie(u); }).length;
+  const ostrzezenie = document.getElementById('ostrzezenie-zdjecia');
+  ostrzezenie.hidden = bezZdjecia === 0;
+  ostrzezenie.textContent = 'Ubrania bez zdjęcia: ' + bezZdjecia +
+    '. Stuknij każde z nich i wybierz albo wklej zdjęcie ponownie – opis zostanie.';
 
   // Komunikat, gdy nie ma czego pokazać – inny dla pustej szafy, inny dla "nic nie pasuje"
   pusto.hidden = widoczne.length > 0;
@@ -511,7 +539,15 @@ function uaktualnijUbranie(ubranie) {
 async function wczytajIPokaz() {
   const zapisane = await wczytajUbrania();
   for (const ubranie of zapisane) {
-    if (uaktualnijUbranie(ubranie)) await zapiszUbranie(ubranie);
+    // Sprawdzamy, czy zdjęcie da się odczytać (funkcja z baza.js)
+    const cale = await zdjecieCale(ubranie.zdjecie);
+    ubranie.zdjecieUszkodzone = !cale;
+
+    // Zdjęcie zapisane dawnym sposobem i nadal całe – przepisujemy je na nowy, bezpieczny sposób
+    const przepisz = ubranie.staryZapis && cale;
+    delete ubranie.staryZapis;
+
+    if (uaktualnijUbranie(ubranie) || przepisz) await zapiszUbranie(ubranie);
   }
   ubrania.length = 0;          // czyścimy listę w pamięci...
   ubrania.push(...zapisane);   // ...i wkładamy do niej wszystko z bazy ("..." rozpakowuje listę na pojedyncze elementy)
@@ -604,7 +640,10 @@ przyciskEksportu.addEventListener('click', async function () {
 
   for (const ubranie of ubrania) {
     // { ...ubranie, zdjecie: X } = "skopiuj wszystkie pola ubrania, ale zdjęcie podmień na X"
-    kopia.ubrania.push({ ...ubranie, zdjecie: await zdjecieNaTekst(ubranie.zdjecie) });
+    // Uszkodzone zdjęcie zapisujemy jako null (= "brak") – i tak nie da się go odczytać
+    const zdjecie = maZdjecie(ubranie) ? await zdjecieNaTekst(ubranie.zdjecie) : null;
+    const { zdjecieUszkodzone, ...bezZnacznika } = ubranie; // kopia ubrania bez pola zdjecieUszkodzone
+    kopia.ubrania.push({ ...bezZnacznika, zdjecie: zdjecie });
   }
 
   // JSON.stringify zamienia obiekt na tekst, który można zapisać do pliku
@@ -633,7 +672,7 @@ poleImportu.addEventListener('change', async function () {
     if (!Array.isArray(kopia.ubrania)) throw new Error('brak listy ubrań');
 
     for (const ubranie of kopia.ubrania) {
-      ubranie.zdjecie = await tekstNaZdjecie(ubranie.zdjecie);
+      ubranie.zdjecie = ubranie.zdjecie ? await tekstNaZdjecie(ubranie.zdjecie) : null;
       await zapiszUbranie(ubranie);
     }
 

@@ -57,9 +57,53 @@ function usunZBazy(szuflada, id) {
   });
 }
 
+// ---------- ZDJĘCIA ----------
+// Safari na iPhonie potrafi "zgubić" zdjęcia zapisane w bazie jako Blob (zostaje pusty plik).
+// Dlatego zdjęcie zapisujemy jako surowe dane (ArrayBuffer = lista bajtów) plus jego typ (np. image/png),
+// a przy wczytaniu składamy z nich z powrotem Blob, którego używa reszta aplikacji.
+
+async function ubranieDoZapisu(ubranie) {
+  if (!(ubranie.zdjecie instanceof Blob)) return ubranie; // brak zdjęcia albo już w bezpiecznej formie
+  try {
+    const dane = await ubranie.zdjecie.arrayBuffer();
+    // Kopia ubrania: zamiast Bloba – dane i typ
+    return { ...ubranie, zdjecie: null, zdjecieDane: dane, zdjecieTyp: ubranie.zdjecie.type };
+  } catch (blad) {
+    return ubranie; // zdjęcia nie da się odczytać (uszkodzone) – zapisujemy resztę bez zmian
+  }
+}
+
+function ubraniePoWczytaniu(rekord) {
+  if (rekord.zdjecieDane) {
+    rekord.zdjecie = new Blob([rekord.zdjecieDane], { type: rekord.zdjecieTyp });
+    delete rekord.zdjecieDane; // delete usuwa pole z obiektu
+    delete rekord.zdjecieTyp;
+  } else if (rekord.zdjecie instanceof Blob) {
+    rekord.staryZapis = true; // zdjęcie zapisane dawnym sposobem – app.js przepisze je na nowy
+  }
+  return rekord;
+}
+
 // Krótsze nazwy dla reszty aplikacji
-function wczytajUbrania() { return wczytajWszystko('ubrania'); }
-function zapiszUbranie(ubranie) { return zapiszWBazie('ubrania', ubranie); }
+async function wczytajUbrania() {
+  const rekordy = await wczytajWszystko('ubrania');
+  return rekordy.map(ubraniePoWczytaniu);
+}
+async function zapiszUbranie(ubranie) {
+  // Najpierw przygotowujemy dane (to chwilę trwa), dopiero potem otwieramy zapis w bazie
+  return zapiszWBazie('ubrania', await ubranieDoZapisu(ubranie));
+}
+
+// Czy zdjęcie da się odczytać? (uszkodzone zdjęcie rzuca błąd przy próbie odczytu)
+async function zdjecieCale(zdjecie) {
+  if (!(zdjecie instanceof Blob)) return false;
+  try {
+    await zdjecie.slice(0, 16).arrayBuffer(); // czytamy tylko pierwsze 16 bajtów – szybko
+    return zdjecie.size > 0;
+  } catch (blad) {
+    return false;
+  }
+}
 function usunUbranieZBazy(id) { return usunZBazy('ubrania', id); }
 
 function wczytajZestawy() { return wczytajWszystko('zestawy'); }
