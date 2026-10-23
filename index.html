@@ -11,7 +11,7 @@
   <!-- Podłączamy plik z wyglądem (CSS).
        "?v=6" to numer wersji. Przeglądarka zapamiętuje pliki; gdy zmienimy numer, uzna plik za nowy
        i pobierze go na pewno. Podnosimy go (tu i przy skryptach na dole) przy każdym kroku. -->
-  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="style.css?v=12">
 
   <!-- PWA: dzięki tym linijkom stronę można zainstalować na telefonie jak aplikację -->
   <!-- Manifest = "wizytówka" aplikacji: nazwa, ikona, kolory -->
@@ -182,7 +182,7 @@
     <!-- KOPIA ZAPASOWA -->
     <section class="karta kopia">
       <h2>Kopia zapasowa</h2>
-      <p class="maly-tekst">Ubrania są zapisane tylko w tej przeglądarce. Co jakiś czas zrób kopię i trzymaj ją w bezpiecznym miejscu.</p>
+      <p class="maly-tekst">Ubrania są zapisane tylko w tej przeglądarce. Co jakiś czas zrób kopię i trzymaj ją w bezpiecznym miejscu – na iPhonie wybierz „Zachowaj w Plikach” → iCloud Drive.</p>
       <div class="przyciski">
         <button type="button" id="eksport" class="przycisk przycisk-jasny">Eksportuj kopię</button>
         <!-- Przycisk importu to tak naprawdę ukryte pole wyboru pliku, "przebrane" za przycisk -->
@@ -191,6 +191,7 @@
           <input type="file" id="import" accept=".json,application/json" hidden>
         </label>
       </div>
+      <button type="button" id="zapisz-przygotowana" class="przycisk przycisk-maly" hidden>📥 Zapisz przygotowaną kopię</button>
       <p id="info-kopia" class="maly-tekst"></p>
     </section>
 
@@ -200,7 +201,10 @@
     <!-- hidden = na starcie ukryty; JavaScript pokaże go po stuknięciu zakładki "Zestawy" -->
     <div id="widok-zestawy" hidden>
 
-      <button type="button" id="nowy-zestaw" class="przycisk">+ Nowy zestaw</button>
+      <div class="przyciski przyciski-gora">
+        <button type="button" id="nowy-zestaw" class="przycisk">+ Nowy zestaw</button>
+        <button type="button" id="otworz-asystenta" class="przycisk przycisk-jasny">✨ Zaproponuj</button>
+      </div>
 
       <!-- Formularz zestawu – widoczny tylko podczas tworzenia albo edycji zestawu -->
       <form id="formularz-zestawu" class="karta" hidden>
@@ -266,6 +270,66 @@
 
   </main>
 
+  <!-- OKNO ASYSTENTA -->
+  <dialog id="okno-asystenta" class="okno-kolazu">
+    <h2>✨ Asystent</h2>
+    <div class="filtry-wiersz">
+      <label class="pole">
+        Sezon
+        <select id="asystent-sezon">
+          <option>Wiosna</option>
+          <option>Lato</option>
+          <option>Jesień</option>
+          <option>Zima</option>
+        </select>
+      </label>
+      <label class="pole">
+        Okazja
+        <select id="asystent-okazja"></select>
+      </label>
+    </div>
+
+    <img id="asystent-obraz" class="asystent-obraz" alt="Propozycja zestawu">
+    <p id="asystent-info" class="maly-tekst"></p>
+    <!-- Dlaczego asystent wybrał ten zestaw -->
+    <ul id="asystent-powody" class="powody"></ul>
+
+    <button type="button" id="asystent-inna" class="przycisk przycisk-jasny">🔄 Inna propozycja</button>
+
+    <!-- Zapis propozycji jako zestawu, opcjonalnie od razu w kalendarzu -->
+    <form id="asystent-zapis" class="zapis-propozycji">
+      <label class="pole">
+        Nazwa zestawu
+        <input type="text" id="asystent-nazwa" maxlength="50">
+      </label>
+      <div class="filtry-wiersz">
+        <label class="pole">
+          Zaplanuj na <span class="maly-tekst">(opcjonalnie)</span>
+          <input type="date" id="asystent-data">
+        </label>
+        <label class="pole">
+          Pora
+          <select id="asystent-pora">
+            <option value="dzien">Dzień</option>
+            <option value="wieczor">Wieczór</option>
+          </select>
+        </label>
+      </div>
+      <button type="submit" class="przycisk">Zapisz zestaw</button>
+    </form>
+
+    <!-- Zwijana sekcja z trendami. <details> = kliknij nagłówek, żeby rozwinąć -->
+    <details class="trendy">
+      <summary id="trendy-sezon"></summary>
+      <ul id="trendy-opis"></ul>
+      <p class="maly-tekst">Źródła:</p>
+      <ul id="trendy-zrodla" class="maly-tekst"></ul>
+      <p id="trendy-data" class="maly-tekst"></p>
+    </details>
+
+    <button type="button" id="asystent-zamknij" class="przycisk przycisk-jasny przycisk-maly">Zamknij</button>
+  </dialog>
+
   <!-- OKNO WYBORU ZESTAWU DO KALENDARZA -->
   <dialog id="okno-wyboru" class="okno-kolazu">
     <h2 id="wybor-tytul"></h2>
@@ -302,10 +366,12 @@
 
   <!-- Podłączamy pliki z zachowaniem strony (JavaScript). Na końcu, żeby elementy powyżej już istniały.
        Najpierw baza.js (zapis danych), potem app.js (ubrania), potem zestawy.js, który korzysta z obu -->
-  <script src="baza.js?v=10"></script>
-  <script src="app.js?v=10"></script>
-  <script src="zestawy.js?v=10"></script>
-  <script src="kolaz.js?v=10"></script>
-  <script src="kalendarz.js?v=10"></script>
+  <script src="baza.js?v=12"></script>
+  <script src="app.js?v=12"></script>
+  <script src="zestawy.js?v=12"></script>
+  <script src="kolaz.js?v=12"></script>
+  <script src="kalendarz.js?v=12"></script>
+  <script src="trendy.js?v=12"></script>
+  <script src="asystent.js?v=12"></script>
 </body>
 </html>

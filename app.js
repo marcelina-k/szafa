@@ -637,8 +637,24 @@ async function tekstNaZdjecie(tekst) {
   return odpowiedz.blob();
 }
 
-// EKSPORT: zbieramy wszystkie ubrania i zestawy w jeden plik .json i pobieramy go na urządzenie
+// Kopia przygotowana, ale jeszcze niezapisana (patrz niżej – "NotAllowedError")
+let przygotowanaKopia = null;
+const przyciskPrzygotowanej = document.getElementById('zapisz-przygotowana');
+
+przyciskPrzygotowanej.addEventListener('click', async function () {
+  try {
+    await navigator.share({ files: [przygotowanaKopia] });
+    infoKopia.textContent = 'Kopia zapisana.';
+    przyciskPrzygotowanej.hidden = true;
+  } catch (blad) {
+    infoKopia.textContent = 'Kopia nie została zapisana.';
+  }
+});
+
+// EKSPORT: zbieramy wszystkie ubrania, zestawy i kalendarz w jeden plik .json i zapisujemy go na urządzeniu
 przyciskEksportu.addEventListener('click', async function () {
+  przyciskPrzygotowanej.hidden = true;
+  infoKopia.textContent = 'Przygotowuję kopię…';
   const kopia = {
     aplikacja: 'Moja szafa',
     wersja: 3, // numer formatu pliku: 1 = same ubrania, 2 = + zestawy, 3 = + kalendarz
@@ -657,14 +673,32 @@ przyciskEksportu.addEventListener('click', async function () {
   }
 
   // JSON.stringify zamienia obiekt na tekst, który można zapisać do pliku
-  const plik = new Blob([JSON.stringify(kopia)], { type: 'application/json' });
   const dzisiaj = new Date().toISOString().slice(0, 10); // np. "2026-10-21"
+  const plik = new File([JSON.stringify(kopia)], 'szafa-kopia-' + dzisiaj + '.json', { type: 'application/json' });
 
-  // Sztuczka: tworzymy niewidoczny link do pliku i "klikamy" go – przeglądarka pobiera plik
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(plik);
-  link.download = 'szafa-kopia-' + dzisiaj + '.json';
-  link.click();
+  // Na telefonie: menu "Udostępnij" – stamtąd "Zachowaj w Plikach" (np. iCloud Drive)
+  if (navigator.canShare && navigator.canShare({ files: [plik] })) {
+    try {
+      await navigator.share({ files: [plik] });
+    } catch (blad) {
+      if (blad.name === 'NotAllowedError') {
+        // iPhone pozwala otworzyć menu tylko zaraz po stuknięciu, a przygotowanie kopii trwało za długo.
+        // Pokazujemy osobny przycisk – jego stuknięcie otworzy menu od razu.
+        przygotowanaKopia = plik;
+        przyciskPrzygotowanej.hidden = false;
+        infoKopia.textContent = 'Kopia gotowa – stuknij „Zapisz przygotowaną kopię”.';
+      } else {
+        infoKopia.textContent = 'Kopia nie została zapisana.'; // zamknięto menu bez wyboru
+      }
+      return;
+    }
+  } else {
+    // Na komputerze: niewidoczny link do pliku, który "klikamy" – przeglądarka pobiera plik
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(plik);
+    link.download = plik.name;
+    link.click();
+  }
 
   infoKopia.textContent = 'Zapisano kopię: ' + ileUbran(ubrania.length) + ', ' +
     ileZestawow(zestawy.length) + ' (' + rozmiarTekstem(plik.size) + ').';
