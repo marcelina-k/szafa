@@ -227,6 +227,7 @@ async function pokazSzczegolyZestawu(zestaw) {
   zestawWOknie = zestaw;
   document.getElementById('kolaz-tytul').textContent = (zestaw.ulubiony ? '★ ' : '') + zestaw.nazwa;
   document.getElementById('kolaz-opis').textContent = opisZestawu(zestaw); // funkcja z zestawy.js
+  document.getElementById('kolaz-kalendarz').textContent = '📅 ' + opisUzyciaZestawu(zestaw); // z kalendarz.js
 
   // Lista ubrań: miniaturka + nazwa. Stuknięcie przenosi do edycji tego ubrania.
   listaWZestawie.innerHTML = '';

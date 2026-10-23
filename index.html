@@ -11,7 +11,7 @@
   <!-- Podłączamy plik z wyglądem (CSS).
        "?v=6" to numer wersji. Przeglądarka zapamiętuje pliki; gdy zmienimy numer, uzna plik za nowy
        i pobierze go na pewno. Podnosimy go (tu i przy skryptach na dole) przy każdym kroku. -->
-  <link rel="stylesheet" href="style.css?v=9">
+  <link rel="stylesheet" href="style.css?v=10">
 
   <!-- PWA: dzięki tym linijkom stronę można zainstalować na telefonie jak aplikację -->
   <!-- Manifest = "wizytówka" aplikacji: nazwa, ikona, kolory -->
@@ -33,6 +33,7 @@
     <nav class="zakladki">
       <button type="button" class="zakladka aktywna" data-widok="widok-ubrania">Ubrania</button>
       <button type="button" class="zakladka" data-widok="widok-zestawy">Zestawy</button>
+      <button type="button" class="zakladka" data-widok="widok-kalendarz">Kalendarz</button>
     </nav>
   </header>
 
@@ -248,12 +249,43 @@
       <div id="lista-zestawow" class="lista-zestawow"></div>
     </div>
 
+    <!-- ========== WIDOK: KALENDARZ ========== -->
+    <div id="widok-kalendarz" hidden>
+      <!-- Przełączanie tygodni -->
+      <div class="nawigacja-tygodnia">
+        <button type="button" id="poprzedni-tydzien" class="przycisk przycisk-jasny strzalka" aria-label="Poprzedni tydzień">‹</button>
+        <div class="tydzien-opis">
+          <strong id="zakres-tygodnia"></strong>
+          <button type="button" id="dzisiejszy-tydzien" class="link">Dziś</button>
+        </div>
+        <button type="button" id="nastepny-tydzien" class="przycisk przycisk-jasny strzalka" aria-label="Następny tydzień">›</button>
+      </div>
+      <!-- 7 dni tygodnia – wypełni je JavaScript -->
+      <div id="dni-tygodnia" class="dni-tygodnia"></div>
+    </div>
+
   </main>
+
+  <!-- OKNO WYBORU ZESTAWU DO KALENDARZA -->
+  <dialog id="okno-wyboru" class="okno-kolazu">
+    <h2 id="wybor-tytul"></h2>
+    <div class="opcje pole">
+      <label><input type="checkbox" id="wybor-tylko-ulubione"> ⭐ Tylko ulubione</label>
+    </div>
+    <p id="wybor-pusto" class="pusto" hidden></p>
+    <div id="wybor-zestawow" class="wybor-zestawow"></div>
+    <div class="przyciski">
+      <button type="button" id="wybor-anuluj" class="przycisk przycisk-jasny">Anuluj</button>
+      <button type="button" id="wybor-usun" class="przycisk przycisk-usun">Usuń z tego dnia</button>
+    </div>
+  </dialog>
 
   <!-- OKNO ZE SZCZEGÓŁAMI ZESTAWU. <dialog> to okienko, które wyświetla się nad resztą strony -->
   <dialog id="okno-kolazu" class="okno-kolazu">
     <h2 id="kolaz-tytul"></h2>
     <p id="kolaz-opis" class="maly-tekst"></p>
+    <!-- Kiedy zestaw był / będzie noszony (z kalendarza) -->
+    <p id="kolaz-kalendarz" class="maly-tekst"></p>
     <img id="kolaz-obraz" alt="Kolaż zestawu">
     <p id="kolaz-info" class="maly-tekst"></p>
     <button type="button" id="kolaz-udostepnij" class="przycisk">Zapisz / wyślij kolaż</button>
@@ -270,9 +302,10 @@
 
   <!-- Podłączamy pliki z zachowaniem strony (JavaScript). Na końcu, żeby elementy powyżej już istniały.
        Najpierw baza.js (zapis danych), potem app.js (ubrania), potem zestawy.js, który korzysta z obu -->
-  <script src="baza.js?v=9"></script>
-  <script src="app.js?v=9"></script>
-  <script src="zestawy.js?v=9"></script>
-  <script src="kolaz.js?v=9"></script>
+  <script src="baza.js?v=10"></script>
+  <script src="app.js?v=10"></script>
+  <script src="zestawy.js?v=10"></script>
+  <script src="kolaz.js?v=10"></script>
+  <script src="kalendarz.js?v=10"></script>
 </body>
 </html>

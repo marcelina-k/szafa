@@ -4,7 +4,7 @@
 // Dzięki temu szafa otworzy się nawet bez internetu (np. w metrze).
 
 // Nazwa "schowka" na pliki. Gdy kiedyś zmienimy listę plików, podniesiemy numer (v2, v3...).
-const SCHOWEK = 'szafa-v4';
+const SCHOWEK = 'szafa-v5';
 
 // Pliki potrzebne, żeby aplikacja działała
 const PLIKI = [
@@ -15,6 +15,7 @@ const PLIKI = [
   'app.js',
   'zestawy.js',
   'kolaz.js',
+  'kalendarz.js',
   'manifest.webmanifest',
   'ikony/ikona-192.png',
   'ikony/ikona-512.png',

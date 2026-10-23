@@ -556,21 +556,30 @@ async function wczytajIPokaz() {
   zestawy.length = 0;
   zestawy.push(...zapisaneZestawy);
 
+  await wczytajKalendarzZBazy(); // funkcja z kalendarz.js
+
   pokazUbrania();
   pokazZestawy();
+  pokazKalendarz();
 }
 
 // ---------- ZAKŁADKI ----------
 
-// Pokazuje jeden widok (np. "widok-zestawy"), a drugi chowa
+// Pokazuje jeden widok (np. "widok-zestawy"), a pozostałe chowa
 function pokazWidok(idWidoku) {
   document.querySelectorAll('.zakladka').forEach(function (zakladka) {
     // classList.toggle(nazwa, warunek) – dodaje klasę, gdy warunek jest prawdziwy, a usuwa, gdy nie
     zakladka.classList.toggle('aktywna', zakladka.dataset.widok === idWidoku);
+    // Każda zakładka wie, który widok pokazuje – chowamy wszystkie oprócz wybranego
+    document.getElementById(zakladka.dataset.widok).hidden = zakladka.dataset.widok !== idWidoku;
   });
-  document.getElementById('widok-ubrania').hidden = idWidoku !== 'widok-ubrania';
-  document.getElementById('widok-zestawy').hidden = idWidoku !== 'widok-zestawy';
   window.scrollTo(0, 0); // na górę strony
+  // Kalendarz rysujemy od nowa przy każdym wejściu – mógł się zmienić zestaw albo zdjęcie ubrania –
+  // i przewijamy do dzisiejszego dnia (funkcje z kalendarz.js)
+  if (idWidoku === 'widok-kalendarz') {
+    pokazKalendarz();
+    przewinDoDzis();
+  }
 }
 
 document.querySelectorAll('.zakladka').forEach(function (zakladka) {
@@ -632,10 +641,11 @@ async function tekstNaZdjecie(tekst) {
 przyciskEksportu.addEventListener('click', async function () {
   const kopia = {
     aplikacja: 'Moja szafa',
-    wersja: 2, // numer formatu pliku: 1 = same ubrania, 2 = ubrania i zestawy
+    wersja: 3, // numer formatu pliku: 1 = same ubrania, 2 = + zestawy, 3 = + kalendarz
     utworzono: new Date().toISOString(),
     ubrania: [],
     zestawy: zestawy, // zestawy to sam tekst i numery ubrań – można je zapisać bez zmian
+    kalendarz: Array.from(kalendarz.values()), // Map -> zwykła lista
   };
 
   for (const ubranie of ubrania) {
@@ -680,6 +690,11 @@ poleImportu.addEventListener('change', async function () {
     const zestawyZKopii = kopia.zestawy || [];
     for (const zestaw of zestawyZKopii) {
       await zapiszZestaw(zestaw);
+    }
+
+    // Kalendarz jest dopiero od wersji 3
+    for (const wpis of kopia.kalendarz || []) {
+      await zapiszDzien(wpis);
     }
 
     await wczytajIPokaz();

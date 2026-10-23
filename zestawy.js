@@ -167,6 +167,7 @@ przyciskUsunZestaw.addEventListener('click', async function () {
 
   const id = edytowanyZestawId;
   await usunZestawZBazy(id);
+  await usunZestawZKalendarza(id); // funkcja z kalendarz.js – zdejmujemy zestaw z zaplanowanych dni
   const pozostale = zestawy.filter(function (z) { return z.id !== id; });
   zestawy.length = 0;
   zestawy.push(...pozostale);

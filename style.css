@@ -407,6 +407,157 @@ img.wyciete {
   border-radius: 8px;
 }
 
+/* ---------- KALENDARZ ---------- */
+
+/* Pasek z przełączaniem tygodni: ‹  20–26 paź 2026 (Dziś)  › */
+.nawigacja-tygodnia {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.strzalka {
+  width: 48px;
+  flex: none; /* strzałki się nie rozciągają */
+  font-size: 1.4rem;
+  padding: 6px;
+}
+
+.tydzien-opis {
+  flex: 1;
+  text-align: center;
+}
+
+.tydzien-opis strong {
+  display: block;
+}
+
+/* Przycisk wyglądający jak link (podkreślony tekst) */
+.link {
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--akcent);
+  background: none;
+  border: none;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 2px;
+}
+
+.dni-tygodnia {
+  display: grid;
+  gap: 10px;
+}
+
+/* Jeden dzień tygodnia */
+.dzien-kalendarza {
+  background: var(--karta);
+  border: 1px solid var(--ramka);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.dzien-kalendarza.dzis {
+  border: 2px solid var(--akcent);
+  scroll-margin-top: 120px; /* przy przewijaniu do dziś zostawiamy miejsce na przyklejony nagłówek */
+}
+
+/* Minione dni – lekko przygaszone */
+.dzien-kalendarza.miniony {
+  opacity: 0.7;
+}
+
+.dzien-naglowek {
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.dzis .dzien-naglowek {
+  color: var(--akcent);
+}
+
+/* Miejsca na zestawy (dzień i wieczór) obok siebie */
+.sloty {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.slot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 56px;
+  padding: 4px;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: white;
+  border: 1px solid var(--ramka);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.slot img {
+  width: 48px;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border-radius: 6px;
+  background: #ececec;
+  flex: none;
+}
+
+.slot strong {
+  display: block;
+  font-size: 0.85rem;
+  line-height: 1.2;
+}
+
+.slot .maly-tekst {
+  display: block;
+  margin: 0;
+}
+
+/* Puste miejsce – przerywana ramka i zielony napis "+ Dzień" */
+.slot-pusty {
+  justify-content: center;
+  color: var(--akcent);
+  font-weight: 600;
+  border-style: dashed;
+}
+
+/* Puste "Wieczór" – mniej widoczne niż "Dzień" */
+.slot-maly {
+  color: var(--szary);
+  font-weight: normal;
+}
+
+.notatka-dnia {
+  width: 100%;
+  margin-top: 8px;
+  padding: 6px 8px;
+  font: inherit;
+  font-size: 16px; /* 16px – żeby iPhone nie powiększał strony przy pisaniu */
+  border: none;
+  border-bottom: 1px solid var(--ramka);
+  background: transparent;
+  box-sizing: border-box;
+}
+
+/* Okno wyboru zestawu: kolaże w 3 kolumnach */
+.wybor-zestawow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.wybor img.kolaz-wybor {
+  aspect-ratio: 3 / 4;
+  background: #ececec;
+}
+
 /* ---------- OKNO KOLAŻU ---------- */
 
 .okno-kolazu {

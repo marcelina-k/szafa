@@ -3,9 +3,9 @@
 // Dane zostają na tym urządzeniu, w tej przeglądarce, także po zamknięciu strony.
 
 const NAZWA_BAZY = 'szafa';
-// Numer wersji bazy. 1 = tylko ubrania, 2 = doszły zestawy.
+// Numer wersji bazy. 1 = tylko ubrania, 2 = doszły zestawy, 3 = doszedł kalendarz.
 // Gdy podniesiemy numer, przeglądarka uruchomi "onupgradeneeded" poniżej i doda brakujące szuflady.
-const WERSJA_BAZY = 2;
+const WERSJA_BAZY = 3;
 
 // Otwieramy bazę raz, na starcie. "Promise" (obietnica) to wartość, która będzie gotowa za chwilę –
 // dalej w kodzie mówimy "gdy baza będzie gotowa, zrób to".
@@ -19,6 +19,8 @@ const bazaGotowa = new Promise(function (gotowe, blad) {
     const baza = prosba.result;
     if (!baza.objectStoreNames.contains('ubrania')) baza.createObjectStore('ubrania', { keyPath: 'id' });
     if (!baza.objectStoreNames.contains('zestawy')) baza.createObjectStore('zestawy', { keyPath: 'id' });
+    // Dni w kalendarzu rozpoznajemy po dacie, np. "2026-10-24"
+    if (!baza.objectStoreNames.contains('kalendarz')) baza.createObjectStore('kalendarz', { keyPath: 'data' });
   };
 
   prosba.onsuccess = function () { gotowe(prosba.result); };
@@ -109,6 +111,10 @@ function usunUbranieZBazy(id) { return usunZBazy('ubrania', id); }
 function wczytajZestawy() { return wczytajWszystko('zestawy'); }
 function zapiszZestaw(zestaw) { return zapiszWBazie('zestawy', zestaw); }
 function usunZestawZBazy(id) { return usunZBazy('zestawy', id); }
+
+function wczytajKalendarz() { return wczytajWszystko('kalendarz'); }
+function zapiszDzien(wpis) { return zapiszWBazie('kalendarz', wpis); }
+function usunDzienZBazy(data) { return usunZBazy('kalendarz', data); }
 
 // Prosimy przeglądarkę, żeby nie kasowała naszych danych, gdy zabraknie miejsca na dysku.
 // Przeglądarka może się nie zgodzić – wtedy tym bardziej warto robić kopie (eksport).
