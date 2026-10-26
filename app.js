@@ -23,6 +23,38 @@ const KATEGORIE = {
   'Dodatki': ['Torba', 'Torebka', 'Szalik', 'Chusta', 'Czapka', 'Czapka z daszkiem', 'Pasek', 'Rękawiczki', 'Biżuteria'],
 };
 
+// Długości okryć wierzchnich – od najkrótszej do najdłuższej (kolejność ma znaczenie:
+// asystent porównuje, które okrycie jest dłuższe, po miejscu na tej liście)
+const DLUGOSCI = [
+  { wartosc: 'krotka', nazwa: 'krótka, do pasa' },
+  { wartosc: 'biodra', nazwa: 'do bioder' },
+  { wartosc: 'udo', nazwa: 'do połowy uda' },
+  { wartosc: 'kolana', nazwa: 'do kolan i dłuższa' },
+];
+
+// Długość, gdy nie wybrano żadnej – typowa dla danego rodzaju
+const DOMYSLNA_DLUGOSC = {
+  'Marynarka': 'biodra',
+  'Kamizelka': 'biodra',
+  'Kurtka': 'biodra',
+  'Płaszcz': 'kolana',
+  'Trencz': 'kolana',
+};
+
+// Długość okrycia: wybrana przez Ciebie albo typowa dla rodzaju
+function dlugoscUbrania(ubranie) {
+  return ubranie.dlugosc || DOMYSLNA_DLUGOSC[ubranie.podkategoria] || 'biodra';
+}
+
+// "Ranga" długości: krótka = 0, do bioder = 1, do połowy uda = 2, do kolan = 3
+function rangaDlugosci(ubranie) {
+  return DLUGOSCI.findIndex(function (d) { return d.wartosc === dlugoscUbrania(ubranie); });
+}
+
+function nazwaDlugosci(ubranie) {
+  return DLUGOSCI[rangaDlugosci(ubranie)].nazwa;
+}
+
 // Stare nazwy kategorii (sprzed tej zmiany) -> nowe. Dzięki temu ubrania dodane wcześniej
 // (i stare kopie zapasowe) trafią do nowych kategorii. Rodzaj trzeba będzie im uzupełnić ręcznie.
 const STARE_KATEGORIE = {
@@ -226,7 +258,20 @@ wypelnijRodzaje(polePodkategorii, '', '— najpierw kategoria —');
 // Gdy zmienisz kategorię w formularzu – podmieniamy listę rodzajów
 poleKategorii.addEventListener('change', function () {
   wypelnijRodzaje(polePodkategorii, poleKategorii.value, '— wybierz —');
+  pokazPoleDlugosci();
 });
+
+// Pole "Długość" ma sens tylko dla okryć wierzchnich – dla reszty je chowamy
+const poleDlugosci = document.getElementById('pole-dlugosci');
+const listaDlugosci = document.getElementById('dlugosc');
+
+function pokazPoleDlugosci() {
+  poleDlugosci.hidden = poleKategorii.value !== 'Okrycie wierzchnie';
+}
+
+// Opcje długości z listy DLUGOSCI. Pusta opcja = "typowa dla rodzaju" (np. płaszcz -> do kolan)
+listaDlugosci.append(new Option('— typowa dla rodzaju —', ''));
+DLUGOSCI.forEach(function (d) { listaDlugosci.append(new Option(d.nazwa, d.wartosc)); });
 
 // ---------- DODAWANIE UBRANIA ----------
 
@@ -261,6 +306,8 @@ formularz.addEventListener('submit', async function (zdarzenie) {
     zdjecieUszkodzone: !zmniejszoneZdjecie && Boolean(stare && stare.zdjecieUszkodzone),
     kategoria: poleKategorii.value,
     podkategoria: polePodkategorii.value,
+    // Długość zapisujemy tylko dla okryć
+    dlugosc: poleKategorii.value === 'Okrycie wierzchnie' ? listaDlugosci.value : '',
     kolor: document.getElementById('kolor').value,
     sezony: zaznaczone('sezony'),
     okazje: zaznaczone('okazje'),
@@ -318,6 +365,8 @@ function rozpocznijEdycje(ubranie) {
   poleKategorii.value = ubranie.kategoria;
   wypelnijRodzaje(polePodkategorii, poleKategorii.value, '— wybierz —');
   polePodkategorii.value = ubranie.podkategoria;
+  listaDlugosci.value = ubranie.dlugosc || '';
+  pokazPoleDlugosci();
   document.getElementById('kolor').value = ubranie.kolor;
   zaznaczPigulki('sezony', ubranie.sezony);
   zaznaczPigulki('okazje', ubranie.okazje);
@@ -333,6 +382,7 @@ function zakonczEdycje() {
   edytowaneId = null;
   formularz.reset();
   wypelnijRodzaje(polePodkategorii, '', '— najpierw kategoria —');
+  pokazPoleDlugosci();
   tytulFormularza.textContent = 'Dodaj ubranie';
   przyciskZapisz.textContent = 'Dodaj do szafy';
   przyciskiEdycji.hidden = true;
@@ -509,6 +559,10 @@ function pokazUbrania() {
 
     linijka(nazwa, 'nazwa');
     if (ubranie.podkategoria) linijka(ubranie.kategoria);
+    // Przy okryciach – długość (z dopiskiem, jeśli to tylko wartość typowa, a nie wybrana przez Ciebie)
+    if (ubranie.kategoria === 'Okrycie wierzchnie') {
+      linijka('Długość: ' + nazwaDlugosci(ubranie) + (ubranie.dlugosc ? '' : ' (typowa)'));
+    }
     linijka(ubranie.kolor);
     // join(', ') łączy listę w tekst: ["Jesień", "Zima"] -> "Jesień, Zima"
     linijka(ubranie.sezony.join(', ') || 'każdy sezon');
@@ -532,6 +586,7 @@ function uaktualnijUbranie(ubranie) {
   if (ubranie.podkategoria === undefined) { ubranie.podkategoria = ''; zmienione = true; }
   if (ubranie.notatka === undefined) { ubranie.notatka = ''; zmienione = true; }
   if (ubranie.ulubione === undefined) { ubranie.ulubione = false; zmienione = true; }
+  if (ubranie.dlugosc === undefined) { ubranie.dlugosc = ''; zmienione = true; }
   return zmienione;
 }
 

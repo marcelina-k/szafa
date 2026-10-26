@@ -125,9 +125,18 @@ function wylosujZestaw(grupy, sezon) {
     const podSpod = grupy.okrycia.filter(okryciePodSpod);
     const naWierzch = grupy.okrycia.filter(function (u) { return !okryciePodSpod(u); });
 
-    if (podSpod.length && naWierzch.length && Math.random() < SZANSA_DWOCH_OKRYC[sezon]) {
+    // Wszystkie pary, które mają sens: okrycie na wierzchu DŁUŻSZE niż to pod spodem
+    // (inaczej marynarka wystawałaby spod kurtki). Długości – patrz DLUGOSCI w app.js.
+    const pary = [];
+    podSpod.forEach(function (spod) {
+      naWierzch.forEach(function (wierzch) {
+        if (rangaDlugosci(wierzch) > rangaDlugosci(spod)) pary.push([spod, wierzch]);
+      });
+    });
+
+    if (pary.length && Math.random() < SZANSA_DWOCH_OKRYC[sezon]) {
       // Dwie warstwy: np. marynarka pod płaszczem
-      wynik.push(losowy(podSpod), losowy(naWierzch));
+      wynik.push(...losowy(pary)); // "..." wkłada oba elementy pary osobno
     } else if (sezon === 'Zima' && naWierzch.length) {
       // Zimą sama marynarka to za mało – jeśli jest płaszcz albo kurtka, bierzemy je
       wynik.push(losowy(naWierzch));

@@ -46,6 +46,26 @@ function okryciePodSpod(u) {
   return u.kategoria === 'Okrycie wierzchnie' && OKRYCIA_POD_SPOD.includes(u.podkategoria);
 }
 
+// Wysokość miejsca okrycia zależnie od długości: krótka, do bioder, do połowy uda, do kolan
+const SKALA_DLUGOSCI = [0.75, 0.88, 1.0, 1.15];
+
+// Sprawdza zestaw złożony ręcznie: czy marynarka/kamizelka nie wystaje spod krótszego okrycia?
+// Zwraca ostrzeżenie albo pusty tekst.
+function ostrzezenieWarstw(listaUbran) {
+  const okrycia = listaUbran.filter(function (u) { return u.kategoria === 'Okrycie wierzchnie'; });
+  const spod = okrycia.filter(okryciePodSpod);
+  const wierzch = okrycia.filter(function (u) { return !okryciePodSpod(u); });
+  for (const s of spod) {
+    for (const w of wierzch) {
+      if (rangaDlugosci(w) <= rangaDlugosci(s)) {
+        return 'Uwaga: ' + s.podkategoria.toLowerCase() + ' może wystawać – okrycie na wierzchu (' +
+          w.podkategoria.toLowerCase() + ', ' + nazwaDlugosci(w) + ') nie jest od niej dłuższe.';
+      }
+    }
+  }
+  return '';
+}
+
 // ---------- ROZMIESZCZENIE ----------
 
 // Do jakiej roli na kolażu pasuje ubranie?
@@ -108,6 +128,11 @@ function rozmiescUbrania(listaUbran) {
     if (nazwaMiejsca && !zajete[nazwaMiejsca]) {
       miejsce = MIEJSCA[nazwaMiejsca];
       zajete[nazwaMiejsca] = true;
+      // Okrycia: im dłuższe, tym wyższe miejsce na kolażu (krótka kurtka mniejsza niż płaszcz do kolan)
+      if (element.ubranie.kategoria === 'Okrycie wierzchnie') {
+        const skala = SKALA_DLUGOSCI[rangaDlugosci(element.ubranie)]; // funkcja z app.js
+        miejsce = { x: miejsce.x, y: miejsce.y, w: miejsce.w, h: miejsce.h * skala };
+      }
     } else if (wolne.length) {
       miejsce = wolne.shift(); // shift() = weź pierwszy element listy i usuń go z niej
     }
@@ -292,6 +317,8 @@ async function pokazSzczegolyZestawu(zestaw) {
   if (wynik.pominiete) {
     uwagi.push('Nie zmieściło się: ' + ileUbran(wynik.pominiete) + '.');
   }
+  const warstwy = ostrzezenieWarstw(ubraniaZestawu(zestaw));
+  if (warstwy) uwagi.push(warstwy);
   infoKolazu.textContent = uwagi.join(' ');
 }
 
