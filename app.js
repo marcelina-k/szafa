@@ -14,7 +14,7 @@ const JAKOSC = 0.8;
 // Chcesz dodać kategorię? Dopisz nową linijkę: 'Nazwa': ['rodzaj 1', 'rodzaj 2'],
 const KATEGORIE = {
   'Góra ciepła': ['T-shirt', 'Bluzka', 'Koszula', 'Tank top', 'Longsleeve'],
-  'Góra zimna': ['Sweter', 'Bluza'],
+  'Góra zimna': ['Sweter', 'Bluza', 'Kamizelka'],
   'Dół spodnie': ['Materiałowe', 'Jeansy', 'Szorty', 'Legginsy', 'Legginsy dzwony', 'Bikery'],
   'Dół spódnica': ['Krótka', 'Midi', 'Długa'],
   'Sukienka / kombinezon': ['Krótka', 'Midi', 'Długa', 'Kombinezon'],
