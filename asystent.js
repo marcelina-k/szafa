@@ -14,9 +14,8 @@ const ZIEMISTE = ['Beżowy', 'Brązowy', 'Bordowy']; // ciepłe, ziemiste odcien
 // Szansa (0–1), że do zestawu trafi okrycie, zależnie od sezonu
 const SZANSA_OKRYCIA = { 'Wiosna': 0.4, 'Lato': 0, 'Jesień': 0.75, 'Zima': 1 };
 
-// Szansa (0–1), że będą dwie warstwy okrycia: marynarka/kamizelka + płaszcz/kurtka
-// (które okrycia mogą być pod spodem – patrz OKRYCIA_POD_SPOD w kolaz.js)
-const SZANSA_DWOCH_OKRYC = { 'Wiosna': 0, 'Lato': 0, 'Jesień': 0.25, 'Zima': 0.5 };
+// Szansa (0–1) na środkową warstwę góry: sweter, bluza, kamizelka albo marynarka
+const SZANSA_SRODKA = { 'Wiosna': 0.6, 'Lato': 0.15, 'Jesień': 0.8, 'Zima': 0.95 };
 
 // ---------- POMOCNICZE ----------
 
@@ -95,55 +94,65 @@ function przygotujGrupy(sezon, okazja) {
   };
 }
 
+// Kamizelki i marynarki zawsze potrzebują czegoś pod spodem (koszuli, koszulki...).
+// Sweter i bluza mogą być noszone same.
+function wymagaSpodu(u) {
+  return u.podkategoria === 'Kamizelka' || u.podkategoria === 'Marynarka';
+}
+
 // Losuje jeden zestaw zgodny z zasadami budowy. Zwraca listę ubrań albo null.
+// Góra składa się z najwyżej TRZECH warstw – tak jak się ubierasz:
+//   1. SPÓD    – koszula, koszulka, bluzka... (góra ciepła)
+//   2. ŚRODEK  – sweter, bluza, kamizelka albo marynarka – NAJWYŻEJ JEDNA rzecz
+//   3. WIERZCH – kurtka, płaszcz, trencz (dłuższe niż kamizelka/marynarka pod spodem)
 function wylosujZestaw(grupy, sezon) {
-  const gory = grupy.goryCieple.concat(grupy.goryZimne); // concat = połącz dwie listy
-  const mozeGoraDol = gory.length > 0 && grupy.doly.length > 0;
+  const spody = grupy.goryCieple;
+  const srodki = grupy.goryZimne.concat(grupy.okrycia.filter(okryciePodSpod)); // concat = połącz dwie listy
+  const wierzchy = grupy.okrycia.filter(function (u) { return !okryciePodSpod(u); });
+  const samodzielneSrodki = srodki.filter(function (u) { return !wymagaSpodu(u); }); // sweter, bluza
+
+  const mozeGoraDol = (spody.length > 0 || samodzielneSrodki.length > 0) && grupy.doly.length > 0;
   const mozeSukienka = grupy.sukienki.length > 0;
   if (!mozeGoraDol && !mozeSukienka) return null;
 
   const wynik = [];
+  let srodek = null;
+
   // Sukienka czy góra + dół? Jeśli możliwe jedno i drugie – losujemy (sukienka rzadziej)
   if (mozeSukienka && (!mozeGoraDol || Math.random() < 0.35)) {
     wynik.push(losowy(grupy.sukienki));
+    // Na sukienkę czasem marynarka albo kamizelka (sukienka jest dla nich "spodem")
+    const naSukienke = grupy.okrycia.filter(okryciePodSpod);
+    if (naSukienke.length && Math.random() < SZANSA_SRODKA[sezon] / 2) srodek = losowy(naSukienke);
   } else {
-    // Zimą i jesienią czasem dwie góry warstwowo (np. koszula pod swetrem)
-    const warstwy = (sezon === 'Zima' || sezon === 'Jesień') &&
-      grupy.goryCieple.length && grupy.goryZimne.length && Math.random() < 0.4;
-    if (warstwy) {
-      wynik.push(losowy(grupy.goryCieple), losowy(grupy.goryZimne));
-    } else {
-      wynik.push(losowy(gory));
+    // WARSTWA 2 – środek. Kamizelka/marynarka tylko wtedy, gdy jest co pod nią założyć.
+    if (srodki.length && Math.random() < SZANSA_SRODKA[sezon]) {
+      srodek = losowy(spody.length ? srodki : samodzielneSrodki);
     }
+    // Bez koszulek w szafie musi być chociaż sweter albo bluza
+    if (!srodek && !spody.length) srodek = losowy(samodzielneSrodki);
+
+    // WARSTWA 1 – spód. Obowiązkowy pod kamizelką/marynarką i gdy nie ma środka;
+    // pod swetrem – czasem (jesienią i zimą koszula pod swetrem wygląda dobrze)
+    const potrzebnySpod = !srodek || wymagaSpodu(srodek) ||
+      ((sezon === 'Jesień' || sezon === 'Zima') && Math.random() < 0.5);
+    if (potrzebnySpod && spody.length) wynik.push(losowy(spody));
+
     wynik.push(losowy(grupy.doly));
   }
+  if (srodek) wynik.push(srodek);
 
   if (grupy.buty.length) wynik.push(losowy(grupy.buty));
 
-  // Okrycie. Dzielimy je na "pod spód" (marynarka, kamizelka) i "na wierzch" (płaszcz, kurtka, trencz).
-  if (grupy.okrycia.length && Math.random() < SZANSA_OKRYCIA[sezon]) {
-    const podSpod = grupy.okrycia.filter(okryciePodSpod);
-    const naWierzch = grupy.okrycia.filter(function (u) { return !okryciePodSpod(u); });
-
-    // Wszystkie pary, które mają sens: okrycie na wierzchu DŁUŻSZE niż to pod spodem
-    // (inaczej marynarka wystawałaby spod kurtki). Długości – patrz DLUGOSCI w app.js.
-    const pary = [];
-    podSpod.forEach(function (spod) {
-      naWierzch.forEach(function (wierzch) {
-        if (rangaDlugosci(wierzch) > rangaDlugosci(spod)) pary.push([spod, wierzch]);
-      });
-    });
-
-    if (pary.length && Math.random() < SZANSA_DWOCH_OKRYC[sezon]) {
-      // Dwie warstwy: np. marynarka pod płaszczem
-      wynik.push(...losowy(pary)); // "..." wkłada oba elementy pary osobno
-    } else if (sezon === 'Zima' && naWierzch.length) {
-      // Zimą sama marynarka to za mało – jeśli jest płaszcz albo kurtka, bierzemy je
-      wynik.push(losowy(naWierzch));
-    } else {
-      wynik.push(losowy(grupy.okrycia));
-    }
+  // WARSTWA 3 – wierzch. Jeśli środek to kamizelka/marynarka, wierzch musi być od niej dłuższy
+  // (inaczej by wystawała). Długości – patrz DLUGOSCI w app.js.
+  if (wierzchy.length && Math.random() < SZANSA_OKRYCIA[sezon]) {
+    const pasujace = srodek && wymagaSpodu(srodek)
+      ? wierzchy.filter(function (w) { return rangaDlugosci(w) > rangaDlugosci(srodek); })
+      : wierzchy;
+    if (pasujace.length) wynik.push(losowy(pasujace));
   }
+
   if (grupy.torby.length && Math.random() < 0.6) wynik.push(losowy(grupy.torby));
   if (grupy.dodatki.length && Math.random() < 0.4) wynik.push(losowy(grupy.dodatki));
   return wynik;
@@ -196,15 +205,14 @@ function ocenZestaw(lista, noszone) {
     powody.push('Ciepłe, ziemiste odcienie – beż, brąz i bordo.');
   }
 
-  // Dwie warstwy okrycia – mały plus i wyjaśnienie, np. "marynarka pod płaszczem"
-  const okrycia = lista.filter(function (u) { return u.kategoria === 'Okrycie wierzchnie'; });
-  const spod = okrycia.find(okryciePodSpod);
-  const wierzch = okrycia.find(function (u) { return !okryciePodSpod(u); });
-  if (spod && wierzch) {
-    punkty += 1;
-    powody.push('Warstwowo: ' + spod.podkategoria.toLowerCase() + ' pod ' +
-      (wierzch.podkategoria === 'Płaszcz' ? 'płaszczem' : wierzch.podkategoria === 'Kurtka' ? 'kurtką' :
-       wierzch.podkategoria === 'Trencz' ? 'trenczem' : 'okryciem') + '.');
+  // Warstwy góry – wyjaśnienie, np. "Warstwy: koszula → marynarka → płaszcz", i mały plus za trzy warstwy
+  const warstwa1 = lista.find(function (u) { return u.kategoria === 'Góra ciepła'; });
+  const warstwa2 = lista.find(function (u) { return u.kategoria === 'Góra zimna' || okryciePodSpod(u); });
+  const warstwa3 = lista.find(function (u) { return u.kategoria === 'Okrycie wierzchnie' && !okryciePodSpod(u); });
+  const warstwy = [warstwa1, warstwa2, warstwa3].filter(Boolean);
+  if (warstwy.length >= 2) {
+    if (warstwy.length === 3) punkty += 1;
+    powody.push('Warstwy: ' + warstwy.map(function (u) { return u.podkategoria.toLowerCase(); }).join(' → ') + '.');
   }
 
   // 2. TRENDY (z trendy.js) – najwyżej 6 punktów, żeby trendy nie zagłuszyły reszty zasad
@@ -247,7 +255,8 @@ const pokazanePropozycje = new Set();
 // Główna funkcja: zwraca { ubrania, powody } albo { brak: 'wyjaśnienie' }
 function zaproponujZestaw(sezon, okazja) {
   const grupy = przygotujGrupy(sezon, okazja);
-  const gory = grupy.goryCieple.length + grupy.goryZimne.length;
+  // Góra, która może być noszona sama: góra ciepła albo sweter/bluza (kamizelka i marynarka – nie)
+  const gory = grupy.goryCieple.length + grupy.goryZimne.filter(function (u) { return !wymagaSpodu(u); }).length;
   if (!(gory && grupy.doly.length) && !grupy.sukienki.length) {
     return {
       brak: 'Brakuje ubrań ' + NA_SEZON[sezon] + (okazja ? ' (okazja: ' + okazja.toLowerCase() + ')' : '') +
@@ -272,7 +281,9 @@ function zaproponujZestaw(sezon, okazja) {
   }
 
   if (!najlepszy) {
-    // Wszystkie możliwe zestawy już były – zaczynamy pokazywać od nowa
+    // Nic nowego się nie wylosowało. Jeśli coś już pokazywaliśmy – zaczynamy od nowa,
+    // a jeśli nie – nie da się ułożyć żadnego zestawu (zabezpieczenie przed zapętleniem)
+    if (pokazanePropozycje.size === 0) return { brak: 'Nie udało się ułożyć zestawu z tych ubrań.' };
     pokazanePropozycje.clear();
     return zaproponujZestaw(sezon, okazja);
   }
