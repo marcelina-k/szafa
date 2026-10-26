@@ -14,6 +14,10 @@ const ZIEMISTE = ['Beżowy', 'Brązowy', 'Bordowy']; // ciepłe, ziemiste odcien
 // Szansa (0–1), że do zestawu trafi okrycie, zależnie od sezonu
 const SZANSA_OKRYCIA = { 'Wiosna': 0.4, 'Lato': 0, 'Jesień': 0.75, 'Zima': 1 };
 
+// Szansa (0–1), że będą dwie warstwy okrycia: marynarka/kamizelka + płaszcz/kurtka
+// (które okrycia mogą być pod spodem – patrz OKRYCIA_POD_SPOD w kolaz.js)
+const SZANSA_DWOCH_OKRYC = { 'Wiosna': 0, 'Lato': 0, 'Jesień': 0.25, 'Zima': 0.5 };
+
 // ---------- POMOCNICZE ----------
 
 // Bieżący sezon według miesiąca (getMonth: 0 = styczeń)
@@ -115,7 +119,22 @@ function wylosujZestaw(grupy, sezon) {
   }
 
   if (grupy.buty.length) wynik.push(losowy(grupy.buty));
-  if (grupy.okrycia.length && Math.random() < SZANSA_OKRYCIA[sezon]) wynik.push(losowy(grupy.okrycia));
+
+  // Okrycie. Dzielimy je na "pod spód" (marynarka, kamizelka) i "na wierzch" (płaszcz, kurtka, trencz).
+  if (grupy.okrycia.length && Math.random() < SZANSA_OKRYCIA[sezon]) {
+    const podSpod = grupy.okrycia.filter(okryciePodSpod);
+    const naWierzch = grupy.okrycia.filter(function (u) { return !okryciePodSpod(u); });
+
+    if (podSpod.length && naWierzch.length && Math.random() < SZANSA_DWOCH_OKRYC[sezon]) {
+      // Dwie warstwy: np. marynarka pod płaszczem
+      wynik.push(losowy(podSpod), losowy(naWierzch));
+    } else if (sezon === 'Zima' && naWierzch.length) {
+      // Zimą sama marynarka to za mało – jeśli jest płaszcz albo kurtka, bierzemy je
+      wynik.push(losowy(naWierzch));
+    } else {
+      wynik.push(losowy(grupy.okrycia));
+    }
+  }
   if (grupy.torby.length && Math.random() < 0.6) wynik.push(losowy(grupy.torby));
   if (grupy.dodatki.length && Math.random() < 0.4) wynik.push(losowy(grupy.dodatki));
   return wynik;
@@ -166,6 +185,17 @@ function ocenZestaw(lista, noszone) {
   } else if (lista.length >= 3 && kolory.every(function (k) { return ZIEMISTE.includes(k); })) {
     punkty += 2;
     powody.push('Ciepłe, ziemiste odcienie – beż, brąz i bordo.');
+  }
+
+  // Dwie warstwy okrycia – mały plus i wyjaśnienie, np. "marynarka pod płaszczem"
+  const okrycia = lista.filter(function (u) { return u.kategoria === 'Okrycie wierzchnie'; });
+  const spod = okrycia.find(okryciePodSpod);
+  const wierzch = okrycia.find(function (u) { return !okryciePodSpod(u); });
+  if (spod && wierzch) {
+    punkty += 1;
+    powody.push('Warstwowo: ' + spod.podkategoria.toLowerCase() + ' pod ' +
+      (wierzch.podkategoria === 'Płaszcz' ? 'płaszczem' : wierzch.podkategoria === 'Kurtka' ? 'kurtką' :
+       wierzch.podkategoria === 'Trencz' ? 'trenczem' : 'okryciem') + '.');
   }
 
   // 2. TRENDY (z trendy.js) – najwyżej 6 punktów, żeby trendy nie zagłuszyły reszty zasad

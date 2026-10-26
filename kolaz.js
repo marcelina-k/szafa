@@ -18,6 +18,7 @@ const MIEJSCA = {
   sukienka:   { x: 0.18, y: 0.04, w: 0.56, h: 0.80 }, // duża, przez środek
   dol:        { x: 0.30, y: 0.33, w: 0.48, h: 0.63 }, // pod górą, góra lekko na niego zachodzi
   okrycie:    { x: 0.46, y: 0.14, w: 0.52, h: 0.47 }, // na wierzchu, po prawej
+  okrycieSpod:{ x: 0.34, y: 0.08, w: 0.48, h: 0.44 }, // marynarka/kamizelka pod płaszczem – trochę wyżej i w lewo
   torba:      { x: 0.02, y: 0.47, w: 0.36, h: 0.25 }, // po lewej, na wysokości bioder
   buty:       { x: 0.02, y: 0.76, w: 0.38, h: 0.22 }, // lewy dolny róg
   czapka:     { x: 0.70, y: 0.01, w: 0.28, h: 0.13 }, // prawy górny róg
@@ -33,8 +34,17 @@ const WOLNE_MIEJSCA = [
 ];
 
 // Kolejność rysowania = kolejność ubierania się. To, co narysowane później, leży "na wierzchu":
-// koszulka -> spodnie/spódnica (koszulka jakby włożona do środka) -> sukienka -> sweter/bluza -> okrycie -> dodatki
-const KOLEJNOSC_RYSOWANIA = ['goraCiepla', 'dol', 'sukienka', 'goraZimna', 'okrycie', 'torba', 'buty', 'dodatek', 'czapka', 'bizuteria'];
+// koszulka -> spodnie/spódnica (koszulka jakby włożona do środka) -> sukienka -> sweter/bluza ->
+// marynarka (pod płaszczem) -> płaszcz/kurtka -> dodatki
+const KOLEJNOSC_RYSOWANIA = ['goraCiepla', 'dol', 'sukienka', 'goraZimna', 'okrycieSpod', 'okrycie', 'torba', 'buty', 'dodatek', 'czapka', 'bizuteria'];
+
+// Okrycia, które można nosić POD innym okryciem (np. marynarka pod płaszczem).
+// Korzysta z tego też asystent (asystent.js).
+const OKRYCIA_POD_SPOD = ['Marynarka', 'Kamizelka'];
+
+function okryciePodSpod(u) {
+  return u.kategoria === 'Okrycie wierzchnie' && OKRYCIA_POD_SPOD.includes(u.podkategoria);
+}
 
 // ---------- ROZMIESZCZENIE ----------
 
@@ -59,7 +69,15 @@ function rolaUbrania(ubranie) {
 
 // Przydziela każdemu ubraniu miejsce na kolażu. Zwraca listę { ubranie, miejsce } w kolejności rysowania.
 function rozmiescUbrania(listaUbran) {
-  const role = listaUbran.map(rolaUbrania);
+  // Gdy w zestawie jest marynarka/kamizelka ORAZ inne okrycie (np. płaszcz),
+  // marynarka dostaje rolę "okrycieSpod" – leży pod płaszczem
+  const jestOkrycieNaWierzch = listaUbran.some(function (u) {
+    return u.kategoria === 'Okrycie wierzchnie' && !okryciePodSpod(u);
+  });
+  const role = listaUbran.map(function (u) {
+    if (jestOkrycieNaWierzch && okryciePodSpod(u)) return 'okrycieSpod';
+    return rolaUbrania(u);
+  });
   const zajete = {};    // które role mają już swoje miejsce
   const wolne = WOLNE_MIEJSCA.slice();
   const wynik = [];
