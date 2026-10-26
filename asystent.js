@@ -17,6 +17,9 @@ const SZANSA_OKRYCIA = { 'Wiosna': 0.4, 'Lato': 0, 'Jesień': 0.75, 'Zima': 1 };
 // Szansa (0–1) na środkową warstwę góry: sweter, bluza, kamizelka albo marynarka
 const SZANSA_SRODKA = { 'Wiosna': 0.6, 'Lato': 0.15, 'Jesień': 0.8, 'Zima': 0.95 };
 
+// Szansa (0–1) na PODWÓJNY środek: sweter/bluza, a na to marynarka (albo kamizelka z okryć)
+const SZANSA_PODWOJNEGO_SRODKA = { 'Wiosna': 0, 'Lato': 0, 'Jesień': 0.15, 'Zima': 0.35 };
+
 // ---------- POMOCNICZE ----------
 
 // Bieżący sezon według miesiąca (getMonth: 0 = styczeń)
@@ -101,22 +104,25 @@ function wymagaSpodu(u) {
 }
 
 // Losuje jeden zestaw zgodny z zasadami budowy. Zwraca listę ubrań albo null.
-// Góra składa się z najwyżej TRZECH warstw – tak jak się ubierasz:
+// Góra składa się z warstw – tak jak się ubierasz:
 //   1. SPÓD    – koszula, koszulka, bluzka... (góra ciepła)
-//   2. ŚRODEK  – sweter, bluza, kamizelka albo marynarka – NAJWYŻEJ JEDNA rzecz
+//   2. ŚRODEK  – sweter, bluza, kamizelka albo marynarka – zwykle JEDNA rzecz;
+//                zimą czasem dwie: sweter/bluza, a na to marynarka (nigdy kamizelka + marynarka)
 //   3. WIERZCH – kurtka, płaszcz, trencz (dłuższe niż kamizelka/marynarka pod spodem)
 function wylosujZestaw(grupy, sezon) {
   const spody = grupy.goryCieple;
   const srodki = grupy.goryZimne.concat(grupy.okrycia.filter(okryciePodSpod)); // concat = połącz dwie listy
   const wierzchy = grupy.okrycia.filter(function (u) { return !okryciePodSpod(u); });
   const samodzielneSrodki = srodki.filter(function (u) { return !wymagaSpodu(u); }); // sweter, bluza
+  const okryciaPodSpod = grupy.okrycia.filter(okryciePodSpod); // marynarka, kamizelka z okryć
 
   const mozeGoraDol = (spody.length > 0 || samodzielneSrodki.length > 0) && grupy.doly.length > 0;
   const mozeSukienka = grupy.sukienki.length > 0;
   if (!mozeGoraDol && !mozeSukienka) return null;
 
   const wynik = [];
-  let srodek = null;
+  let srodek = null;       // pierwsza (albo jedyna) rzecz środkowej warstwy
+  let srodekWierzch = null; // druga rzecz środka – marynarka na swetrze (tylko przy podwójnym środku)
 
   // Sukienka czy góra + dół? Jeśli możliwe jedno i drugie – losujemy (sukienka rzadziej)
   if (mozeSukienka && (!mozeGoraDol || Math.random() < 0.35)) {
@@ -125,8 +131,13 @@ function wylosujZestaw(grupy, sezon) {
     const naSukienke = grupy.okrycia.filter(okryciePodSpod);
     if (naSukienke.length && Math.random() < SZANSA_SRODKA[sezon] / 2) srodek = losowy(naSukienke);
   } else {
-    // WARSTWA 2 – środek. Kamizelka/marynarka tylko wtedy, gdy jest co pod nią założyć.
-    if (srodki.length && Math.random() < SZANSA_SRODKA[sezon]) {
+    // WARSTWA 2 – środek.
+    if (samodzielneSrodki.length && okryciaPodSpod.length && Math.random() < SZANSA_PODWOJNEGO_SRODKA[sezon]) {
+      // Podwójny: sweter/bluza, a na to marynarka (sweter jest dla marynarki "spodem")
+      srodek = losowy(samodzielneSrodki);
+      srodekWierzch = losowy(okryciaPodSpod);
+    } else if (srodki.length && Math.random() < SZANSA_SRODKA[sezon]) {
+      // Pojedynczy. Kamizelka/marynarka tylko wtedy, gdy jest co pod nią założyć.
       srodek = losowy(spody.length ? srodki : samodzielneSrodki);
     }
     // Bez koszulek w szafie musi być chociaż sweter albo bluza
@@ -141,14 +152,16 @@ function wylosujZestaw(grupy, sezon) {
     wynik.push(losowy(grupy.doly));
   }
   if (srodek) wynik.push(srodek);
+  if (srodekWierzch) wynik.push(srodekWierzch);
 
   if (grupy.buty.length) wynik.push(losowy(grupy.buty));
 
-  // WARSTWA 3 – wierzch. Jeśli środek to kamizelka/marynarka, wierzch musi być od niej dłuższy
+  // WARSTWA 3 – wierzch. Jeśli pod spodem jest kamizelka/marynarka, wierzch musi być od niej dłuższy
   // (inaczej by wystawała). Długości – patrz DLUGOSCI w app.js.
+  const podWierzchem = srodekWierzch || srodek; // rzecz leżąca bezpośrednio pod płaszczem
   if (wierzchy.length && Math.random() < SZANSA_OKRYCIA[sezon]) {
-    const pasujace = srodek && wymagaSpodu(srodek)
-      ? wierzchy.filter(function (w) { return rangaDlugosci(w) > rangaDlugosci(srodek); })
+    const pasujace = podWierzchem && wymagaSpodu(podWierzchem)
+      ? wierzchy.filter(function (w) { return rangaDlugosci(w) > rangaDlugosci(podWierzchem); })
       : wierzchy;
     if (pasujace.length) wynik.push(losowy(pasujace));
   }
@@ -205,13 +218,15 @@ function ocenZestaw(lista, noszone) {
     powody.push('Ciepłe, ziemiste odcienie – beż, brąz i bordo.');
   }
 
-  // Warstwy góry – wyjaśnienie, np. "Warstwy: koszula → marynarka → płaszcz", i mały plus za trzy warstwy
-  const warstwa1 = lista.find(function (u) { return u.kategoria === 'Góra ciepła'; });
-  const warstwa2 = lista.find(function (u) { return u.kategoria === 'Góra zimna' || okryciePodSpod(u); });
-  const warstwa3 = lista.find(function (u) { return u.kategoria === 'Okrycie wierzchnie' && !okryciePodSpod(u); });
-  const warstwy = [warstwa1, warstwa2, warstwa3].filter(Boolean);
+  // Warstwy góry – wyjaśnienie, np. "Warstwy: koszula → sweter → marynarka → płaszcz",
+  // i mały plus za co najmniej trzy warstwy. Kolejność: spód, sweter/bluza/kamizelka, marynarka, wierzch.
+  const warstwy = []
+    .concat(lista.filter(function (u) { return u.kategoria === 'Góra ciepła'; }))
+    .concat(lista.filter(function (u) { return u.kategoria === 'Góra zimna'; }))
+    .concat(lista.filter(okryciePodSpod))
+    .concat(lista.filter(function (u) { return u.kategoria === 'Okrycie wierzchnie' && !okryciePodSpod(u); }));
   if (warstwy.length >= 2) {
-    if (warstwy.length === 3) punkty += 1;
+    if (warstwy.length >= 3) punkty += 1;
     powody.push('Warstwy: ' + warstwy.map(function (u) { return u.podkategoria.toLowerCase(); }).join(' → ') + '.');
   }
 
